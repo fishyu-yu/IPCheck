@@ -1,103 +1,248 @@
-import Image from "next/image";
+"use client";
+
+import * as React from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+
+type IPData = {
+  ip_address: string | null;
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  coordinates: { lat: number | null; lon: number | null };
+  isp: string | null;
+  time_zone: string | null;
+  local_time: string | null;
+  domain: string | null;
+  net_speed: string | null;
+  idd_code: string | null;
+  zip_code: string | null;
+  usage_type: string | null;
+  address_type: string | null;
+  asn: string | null;
+  as_domain: string | null;
+  as_cidr: string | null;
+  as_usage_type: string | null;
+  district: string | null;
+  elevation: number | null;
+  weather_station: string | null;
+  fraud_score: number | null;
+  is_proxy: boolean | null;
+  proxy_type: string | null;
+  proxy_asn: string | null;
+  proxy_last_seen: string | null;
+  proxy_provider: string | null;
+  mobile_carrier: string | null;
+  mobile_country_code: string | null;
+  mobile_network_code: string | null;
+};
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [query, setQuery] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [data, setData] = React.useState<IPData | null>(null);
+  const [ip, setIp] = React.useState<string>("");
+  const [nowString, setNowString] = React.useState<string>("");
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  function display(value: unknown) {
+    if (value === null || value === undefined || value === "") return "-";
+    if (typeof value === "boolean") return value ? "是" : "否";
+    return String(value);
+  }
+
+  async function fetchIpInfo(targetIp?: string) {
+    try {
+      setLoading(true);
+      const url = targetIp ? `/api/ip?ip=${encodeURIComponent(targetIp)}` : "/api/ip";
+      const res = await fetch(url);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || "请求失败");
+      setData(json.data);
+      setIp(json.ip);
+      // 初始本地时间
+      if (json.data?.time_zone) {
+        const formatter = new Intl.DateTimeFormat("zh-CN", {
+          dateStyle: "medium",
+          timeStyle: "medium",
+          timeZone: json.data.time_zone,
+        });
+        setNowString(formatter.format(new Date()));
+      } else {
+        setNowString("");
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  React.useEffect(() => {
+    fetchIpInfo();
+  }, []);
+
+  // 动态更新时间显示（每秒）
+  React.useEffect(() => {
+    if (!data?.time_zone) return;
+    const formatter = new Intl.DateTimeFormat("zh-CN", {
+      dateStyle: "medium",
+      timeStyle: "medium",
+      timeZone: data.time_zone,
+    });
+    const timer = setInterval(() => {
+      setNowString(formatter.format(new Date()));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [data?.time_zone]);
+
+  const coordsLabel = React.useMemo(() => {
+    if (!data?.coordinates?.lat || !data?.coordinates?.lon) return "-";
+    return `${data.coordinates.lat}, ${data.coordinates.lon}`;
+  }, [data?.coordinates]);
+
+  const mapUrl = React.useMemo(() => {
+    if (!data?.coordinates?.lat || !data?.coordinates?.lon) return undefined;
+    return `https://www.google.com/maps/search/?api=1&query=${data.coordinates.lat},${data.coordinates.lon}`;
+  }, [data?.coordinates]);
+
+  return (
+    <div className="container mx-auto max-w-6xl p-6 space-y-6">
+      {/* 顶部搜索 */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <h1 className="text-2xl font-bold">IP 信息查询</h1>
+        <div className="flex-1" />
+        <div className="flex w-full sm:w-auto gap-2">
+          <Input
+            placeholder="输入 IP 地址，如 8.8.8.8"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+          <Button disabled={loading} onClick={() => fetchIpInfo(query)}>查询</Button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
+      </div>
+
+      {/* 当前 IP 概览 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>当前查询 IP：{ip || "-"}</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+          <div>
+            <div className="text-muted-foreground">国家</div>
+            <div className="font-medium">{display(data?.country)}</div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">州/地区</div>
+            <div className="font-medium">{display(data?.region)}</div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">城市</div>
+            <div className="font-medium">{display(data?.city)}</div>
+          </div>
+          <div>
+            <div className="text-muted-foreground">ISP 提供商</div>
+            <div className="font-medium">{display(data?.isp)}</div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 基础信息 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>基础信息</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <Field label="IP地址" value={display(data?.ip_address)} />
+            <Field label="国家" value={display(data?.country)} />
+            <Field label="州/地区" value={display(data?.region)} />
+            <Field label="城市" value={display(data?.city)} />
+            <Field label="城市坐标" value={coordsLabel} link={mapUrl} />
+            <Field label="ISP提供商" value={display(data?.isp)} />
+            <Field label="时区" value={display(data?.time_zone)} />
+            <Field label="本地时间" value={data?.time_zone ? nowString : "-"} />
+            <Field label="域名" value={display(data?.domain)} />
+          </CardContent>
+        </Card>
+
+        {/* 网络信息 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>网络信息</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <Field label="网络速度" value={display(data?.net_speed)} />
+            <Field label="国际拨号代码和区号" value={display(data?.idd_code)} />
+            <Field label="邮政编码" value={display(data?.zip_code)} />
+            <Field label="使用类型" value={display(data?.usage_type)} />
+            <Field label="地址类型" value={display(data?.address_type)} />
+            <Field label="ASN" value={display(data?.asn)} />
+            <Field label="AS域名" value={display(data?.as_domain)} />
+            <Field label="AS CIDR" value={display(data?.as_cidr)} />
+            <Field label="AS使用类型" value={display(data?.as_usage_type)} />
+          </CardContent>
+        </Card>
+
+        {/* 位置详情 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>位置详情</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <Field label="行政区" value={display(data?.district)} />
+            <Field label="海拔" value={display(data?.elevation)} />
+            <Field label="气象站" value={display(data?.weather_station)} />
+          </CardContent>
+        </Card>
+
+        {/* 安全信息 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>安全信息</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <Field label="欺诈评分" value={display(data?.fraud_score)} />
+            <Field label="是否为代理" value={display(data?.is_proxy)} />
+            <Field label="代理类型" value={display(data?.proxy_type)} />
+            <Field label="代理ASN" value={display(data?.proxy_asn)} />
+            <Field label="代理最后出现时间" value={display(data?.proxy_last_seen)} />
+            <Field label="代理提供商" value={display(data?.proxy_provider)} />
+          </CardContent>
+        </Card>
+
+        {/* 移动信息 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>移动信息（如适用）</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+            <Field label="移动运营商" value={display(data?.mobile_carrier)} />
+            <Field label="移动国家代码" value={display(data?.mobile_country_code)} />
+            <Field label="移动网络代码" value={display(data?.mobile_network_code)} />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, value, link }: { label: string; value: string; link?: string }) {
+  const content = (
+    <div className="font-medium break-words">
+      {value}
+    </div>
+  );
+  return (
+    <div>
+      <div className="text-muted-foreground">{label}</div>
+      {link && value !== "-" ? (
+        <a href={link} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+          {content}
         </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      ) : (
+        content
+      )}
     </div>
   );
 }
