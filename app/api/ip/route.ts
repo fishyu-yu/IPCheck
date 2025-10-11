@@ -38,6 +38,35 @@ type NormalizedIpInfo = {
   mobile_network_code: string | null;
 };
 
+// ipwho.is 响应类型（仅列出使用到的字段）
+type IpWhoResponse = {
+  success?: boolean;
+  message?: string;
+  ip?: string;
+  type?: string;
+  country?: string;
+  region?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  postal?: string;
+  district?: string;
+  timezone?: {
+    id?: string;
+    current_time?: string;
+  };
+  connection?: {
+    isp?: string;
+    domain?: string;
+    asn?: string;
+    org?: string;
+  };
+  security?: {
+    is_proxy?: boolean;
+    proxy_type?: string;
+  };
+};
+
 function getClientIpFromHeaders(req: Request): string | null {
   const forwarded = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || req.headers.get("cf-connecting-ip");
   if (!forwarded) return null;
@@ -74,14 +103,14 @@ function isReservedIp(ip: string): boolean {
   return false;
 }
 
-async function fetchIpInfo(ip: string): Promise<any> {
+async function fetchIpInfo(ip: string): Promise<IpWhoResponse> {
   const res = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`, { next: { revalidate: 60 } });
   if (!res.ok) throw new Error(`ipwho.is 请求失败: ${res.status}`);
   const data = await res.json();
   return data;
 }
 
-function normalize(ipwho: any): NormalizedIpInfo {
+function normalize(ipwho: IpWhoResponse): NormalizedIpInfo {
   const tz = ipwho?.timezone;
   const conn = ipwho?.connection;
   const sec = ipwho?.security;
@@ -148,7 +177,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "无法确定访问者 IP" }, { status: 400 });
     }
 
-    let raw = await fetchIpInfo(ip);
+    let raw: IpWhoResponse = await fetchIpInfo(ip);
     if (raw?.success === false) {
       // 如果返回保留地址错误，再尝试一次公网 IP
       const msg = String(raw?.message || "");
@@ -166,7 +195,8 @@ export async function GET(req: Request) {
 
     const data = normalize(raw);
     return NextResponse.json({ ip, data });
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || "服务器错误" }, { status: 500 });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message || "服务器错误" }, { status: 500 });
   }
 }
