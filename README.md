@@ -25,7 +25,7 @@
 ```bash
 git clone https://github.com/<your-username>/ipcheck.git
 cd ipcheck
-npm i
+npm install
 ```
 
 2) 开发运行
