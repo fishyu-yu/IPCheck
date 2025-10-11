@@ -110,7 +110,7 @@ export default function Home() {
     <div className="container mx-auto max-w-6xl p-6 space-y-6">
       {/* 顶部搜索 */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <h1 className="text-2xl font-bold">IP 信息查询</h1>
+        <h1 className="text-2xl font-bold">IP CHECK</h1>
         <div className="flex-1" />
         <div className="flex w-full sm:w-auto gap-2">
           <Input
