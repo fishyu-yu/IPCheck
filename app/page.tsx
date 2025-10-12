@@ -4,6 +4,8 @@ import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import dynamic from "next/dynamic";
+const ThemeToggle = dynamic(() => import("@/components/ui/theme-toggle"), { ssr: false });
 
 type IPData = {
   ip_address: string | null;
@@ -111,6 +113,9 @@ export default function Home() {
       {/* 顶部搜索 */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <h1 className="text-2xl font-bold">IP CHECK</h1>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+        </div>
         <div className="flex-1" />
         <div className="flex w-full sm:w-auto gap-2">
           <Input

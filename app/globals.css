@@ -120,3 +120,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Improve theme switching experience */
+html { color-scheme: light dark; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .theme-transition {
+    transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease;
+  }
+}

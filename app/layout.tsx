@@ -23,10 +23,37 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head />
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased theme-transition`}
       >
+        {/* Initial theme script: applies dark based on saved mode, system or time */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+            try {
+              var key = 'theme-preference';
+              var val = localStorage.getItem(key);
+              var isDark = false;
+              if (val === 'dark') {
+                isDark = true;
+              } else if (val === 'light') {
+                isDark = false;
+              } else if (val === 'time') {
+                var h = new Date().getHours();
+                isDark = (h >= 19 || h < 6);
+              } else {
+                // system by default
+                var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+                isDark = !!(mq && mq.matches);
+              }
+              var root = document.documentElement;
+              root.classList.toggle('dark', isDark);
+            } catch (e) {}
+          `,
+          }}
+        />
         {children}
       </body>
     </html>
