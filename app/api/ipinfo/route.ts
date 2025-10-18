@@ -107,16 +107,73 @@ function isValidIp(ip: string): boolean {
   return parts.length === 4 && parts.every((n) => Number.isInteger(n) && n >= 0 && n <= 255);
 }
 
+type JsonObject = Record<string, unknown>;
+
+async function fetchJsonWithTimeout(url: string, opts: RequestInit & { timeoutMs?: number } = {}): Promise<JsonObject> {
+  const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const timeoutMs = opts.timeoutMs ?? 4000;
+  const timer: ReturnType<typeof setTimeout> | null = controller ? setTimeout(() => controller!.abort(), timeoutMs) : null;
+  try {
+    const nextOpts = (opts as { next?: { revalidate?: number } }).next ?? { revalidate: 60 };
+    const res = await fetch(url, {
+      ...opts,
+      headers: {
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) IPCheck/1.0",
+        ...(opts.headers || {}),
+      },
+      signal: controller ? controller.signal : undefined,
+      next: nextOpts,
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return (await res.json()) as JsonObject;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 async function fetchIpWho(ip: string): Promise<IpWhoResponse> {
-  const res = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`, { next: { revalidate: 60 } });
-  if (!res.ok) throw new Error(`ipwho.is 请求失败: ${res.status}`);
-  return res.json();
+  try {
+    const data = await fetchJsonWithTimeout(`https://ipwho.is/${encodeURIComponent(ip)}`);
+    return data as IpWhoResponse;
+  } catch {
+    // 备用数据源：ipapi.co
+    const alt = await fetchJsonWithTimeout(`https://ipapi.co/${encodeURIComponent(ip)}/json/`);
+    const tz = typeof alt.timezone === "string" ? { id: String(alt.timezone), current_time: undefined } : undefined;
+    const conn = {
+      isp: typeof alt.org === "string" ? String(alt.org) : undefined,
+      domain: undefined,
+      asn: typeof alt.asn === "string" ? String(alt.asn) : undefined,
+      org: typeof alt.org === "string" ? String(alt.org) : undefined,
+    };
+    return {
+      success: true,
+      ip: typeof alt.ip === "string" ? String(alt.ip) : ip,
+      type: typeof alt.version === "string" ? String(alt.version) : undefined,
+      country: typeof alt.country_name === "string" ? String(alt.country_name) : undefined,
+      country_code: typeof alt.country === "string" ? String(alt.country) : undefined,
+      region: typeof alt.region === "string" ? String(alt.region) : undefined,
+      city: typeof alt.city === "string" ? String(alt.city) : undefined,
+      latitude: typeof alt.latitude === "number" ? (alt.latitude as number) : undefined,
+      longitude: typeof alt.longitude === "number" ? (alt.longitude as number) : undefined,
+      postal: typeof alt.postal === "string" ? String(alt.postal) : undefined,
+      timezone: tz,
+      connection: conn,
+    };
+  }
 }
 
 async function getPublicIp(): Promise<string> {
-  const ipifyRes = await fetch("https://api.ipify.org?format=json", { next: { revalidate: 60 } });
-  const ipify = await ipifyRes.json().catch(() => ({}));
-  return ipify?.ip || "";
+  try {
+    const ipify = await fetchJsonWithTimeout("https://api.ipify.org?format=json");
+    const v = typeof ipify.ip === "string" ? (ipify.ip as string) : "";
+    if (v) return v;
+  } catch {}
+  try {
+    const ipapi = await fetchJsonWithTimeout("https://ipapi.co/json/");
+    const v = typeof ipapi.ip === "string" ? (ipapi.ip as string) : "";
+    return v;
+  } catch {}
+  return "";
 }
 
 function toCountryCode(code?: string, name?: string): string {
