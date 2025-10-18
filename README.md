@@ -47,46 +47,40 @@ npm run start
 - 点击“城市坐标”可打开地图查看位置。
 
 ### API 说明
-- 路由：`GET /api/ip` 支持 `ip` 查询参数：`/api/ip?ip=8.8.8.8`
-- 保留/私有地址处理：当来源 IP 为保留网段（如 `127.0.0.1`、`192.168.x.x`、`198.18.0.1`、`::1` 等），服务会自动改用公网 IP 进行查询。
-- 响应示例：
+
+#### 1) `GET /api/ip`
+- 说明：返回规范化的 IP 信息对象，支持查询参数 `ip`（可选）。
+- 示例：`/api/ip?ip=8.8.8.8`
+- 保留/私有地址处理：当来源 IP 为保留网段（如 `127.0.0.1`、`192.168.x.x`、`198.18.0.1`、`::1` 等），后端会自动改用公网 IP 进行查询。
+- 返回：`{ ip, data }`，其中 `data` 为扩展信息（国家、地区、城市、时区、本地时间、ISP、坐标、ASN 等）。
+
+#### 2) `GET /api/ipinfo`
+- 说明：返回与 ipinfo 风格一致的精简 JSON，字段包含 `ip`、`city`、`region`、`country`、`loc`、`org`、`postal`、`timezone`，并可选 `readme`。
+- 查询参数：
+  - `ip`：目标 IP（可选）。
+  - `omit_readme`：`1|true|yes` 时省略 `readme` 字段；对于 `curl` UA 会自动省略。
+  - `pretty`：`1|true|yes` 时返回带缩进与自动换行的 JSON；对于 `curl` UA 默认开启。
+- 保留/私有地址处理：与 `/api/ip` 一致，会优先尝试确定公网 IP。
+- 响应示例（省略 `readme`，并开启美观排版）：
 ```json
 {
-  "ip": "8.8.8.8",
-  "data": {
-    "ip_address": "8.8.8.8",
-    "country": "United States",
-    "region": "California",
-    "city": "Mountain View",
-    "coordinates": { "lat": 37.4056, "lon": -122.0775 },
-    "isp": "Google LLC",
-    "time_zone": "America/Los_Angeles",
-    "local_time": "2025-10-11T08:12:34-07:00",
-    "domain": "google.com",
-    "zip_code": "94043",
-    "address_type": "IPv4",
-    "asn": "AS15169",
-    "as_domain": "Google LLC",
-    "net_speed": null,
-    "idd_code": null,
-    "usage_type": null,
-    "as_cidr": null,
-    "as_usage_type": null,
-    "district": null,
-    "elevation": null,
-    "weather_station": null,
-    "fraud_score": null,
-    "is_proxy": false,
-    "proxy_type": null,
-    "proxy_asn": null,
-    "proxy_last_seen": null,
-    "proxy_provider": null,
-    "mobile_carrier": null,
-    "mobile_country_code": null,
-    "mobile_network_code": null
-  }
+  "ip": "203.0.113.42",
+  "city": "Example City",
+  "region": "Example Region",
+  "country": "US",
+  "loc": "0.0000,0.0000",
+  "org": "AS12345 EXAMPLE ORG",
+  "postal": "00000",
+  "timezone": "Etc/UTC"
 }
 ```
+
+#### 3) Curl 根路径支持
+- 说明：直接 `curl /` 将返回与 `/api/ipinfo` 相同的精简 JSON，默认开启美观排版与省略 `readme`。
+- 示例：
+  - `curl http://localhost:3000`
+  - 部署后：`curl https://你的域名/`
+- 行为细节：服务端会检测 `User-Agent` 包含 `curl/` 并自动走 `ipinfo` 路由；无法确定真实 IP 时会回退到公网 IP。
 
 #### 前端示例（获取并展示数据）
 ```ts
