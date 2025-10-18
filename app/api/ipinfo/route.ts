@@ -55,8 +55,10 @@ type IpWhoResponse = {
 };
 
 function nowNs(): bigint {
-  // 高精度计时
-  return typeof process !== "undefined" && (process as any).hrtime ? (process as any).hrtime.bigint() : BigInt(Date.now()) * BigInt(1e6);
+  if (typeof process !== "undefined" && typeof process.hrtime?.bigint === "function") {
+    return process.hrtime.bigint();
+  }
+  return BigInt(Date.now()) * BigInt(1e6);
 }
 
 function msSince(start: bigint): number {
@@ -163,7 +165,11 @@ function log(kind: string, payload: Record<string, unknown>) {
 
 export async function GET(req: Request) {
   const started = nowNs();
-  const reqId = (globalThis as any).crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const reqId =
+    typeof globalThis.crypto !== "undefined" &&
+    typeof (globalThis.crypto as Crypto).randomUUID === "function"
+      ? (globalThis.crypto as Crypto).randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
   let status = 200;
   try {
     const { searchParams } = new URL(req.url);
@@ -214,8 +220,18 @@ export async function GET(req: Request) {
     const result = validateResult(r);
     const duration = msSince(started);
     log("ok", { ip: result.ip, requestId: reqId, durationMs: duration });
-    const { readme, ...minimal } = result as any;
-    const payload = omitReadme ? minimal : result;
+    const payload: IpInfoLike | Omit<IpInfoLike, "readme"> = omitReadme
+      ? {
+          ip: result.ip,
+          city: result.city,
+          region: result.region,
+          country: result.country,
+          loc: result.loc,
+          org: result.org,
+          postal: result.postal,
+          timezone: result.timezone,
+        }
+      : result;
     const pretty = isCurlUA || ["1", "true", "yes"].includes((searchParams.get("pretty") || "").toLowerCase());
     const headers = {
       "x-request-id": reqId,

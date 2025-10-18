@@ -5,7 +5,7 @@ import { useTheme } from "@/hooks/use-theme";
 import { useEffect, useState } from "react";
 
 export function ThemeToggle() {
-  const { mode, setMode, isDark, toggle } = useTheme();
+  const { setMode, toggle } = useTheme();
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
 
