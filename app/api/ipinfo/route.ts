@@ -132,7 +132,9 @@ function toLoc(lat?: number, lon?: number): string {
 }
 
 function toOrg(conn?: IpWhoResponse["connection"]): string {
-  const asn = conn?.asn ? (conn.asn.startsWith("AS") ? conn.asn : `AS${conn.asn}`) : "";
+  const rawAsn = conn?.asn as unknown;
+  const asnStr = rawAsn == null ? "" : String(rawAsn);
+  const asn = asnStr ? (asnStr.toUpperCase().startsWith("AS") ? asnStr : `AS${asnStr}`) : "";
   const org = conn?.org || conn?.isp || "";
   const joined = `${asn} ${org}`.trim();
   return joined || "";
@@ -165,6 +167,9 @@ export async function GET(req: Request) {
   let status = 200;
   try {
     const { searchParams } = new URL(req.url);
+    const ua = (req.headers.get("user-agent") || "").toLowerCase();
+    const isCurlUA = ua.includes("curl/");
+    const omitReadme = isCurlUA || ["1", "true", "yes"].includes((searchParams.get("omit_readme") || "").toLowerCase());
     const qIp = searchParams.get("ip") || "";
     const headerIp = getClientIpFromHeaders(req) || "";
     let ip = qIp && isValidIp(qIp) ? qIp : headerIp;
@@ -209,14 +214,19 @@ export async function GET(req: Request) {
     const result = validateResult(r);
     const duration = msSince(started);
     log("ok", { ip: result.ip, requestId: reqId, durationMs: duration });
-    return NextResponse.json(result, {
-      status,
-      headers: {
-        "x-request-id": reqId,
-        "x-response-time-ms": String(duration),
-        "cache-control": "no-store",
-      },
-    });
+    const { readme, ...minimal } = result as any;
+    const payload = omitReadme ? minimal : result;
+    const pretty = isCurlUA || ["1", "true", "yes"].includes((searchParams.get("pretty") || "").toLowerCase());
+    const headers = {
+      "x-request-id": reqId,
+      "x-response-time-ms": String(duration),
+      "cache-control": "no-store",
+      "content-type": "application/json; charset=utf-8",
+    } as const;
+    if (pretty) {
+      return new NextResponse(JSON.stringify(payload, null, 2) + "\n", { status, headers });
+    }
+    return NextResponse.json(payload, { status, headers });
   } catch (e: unknown) {
     status = 500;
     const msg = e instanceof Error ? e.message : String(e);
