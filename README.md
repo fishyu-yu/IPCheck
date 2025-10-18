@@ -47,6 +47,7 @@ npm run start
 - 点击“城市坐标”可打开地图查看位置。
 
 ### API 说明
+> 注：本 README 中的示例数据均为去敏感化占位（使用 RFC 5737 测试地址等），不包含真实个人或组织信息。
 
 #### 1) `GET /api/ip`
 - 说明：返回规范化的 IP 信息对象，支持查询参数 `ip`（可选）。
@@ -84,7 +85,8 @@ npm run start
 
 #### 前端示例（获取并展示数据）
 ```ts
-const res = await fetch('/api/ip?ip=8.8.8.8');
+// 使用 RFC 5737 测试地址进行示例（去敏感化）
+const res = await fetch('/api/ip?ip=203.0.113.42');
 const json = await res.json();
 console.log(json.ip, json.data.country, json.data.city);
 ```
