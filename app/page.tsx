@@ -4,46 +4,16 @@ import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import dynamic from "next/dynamic";
-const ThemeToggle = dynamic(() => import("@/components/ui/theme-toggle"), { ssr: false });
+import { IpMap } from "@/components/ui/ip-map";
 
-type IPData = {
-  ip_address: string | null;
-  country: string | null;
-  region: string | null;
-  city: string | null;
-  coordinates: { lat: number | null; lon: number | null };
-  isp: string | null;
-  time_zone: string | null;
-  local_time: string | null;
-  domain: string | null;
-  net_speed: string | null;
-  idd_code: string | null;
-  zip_code: string | null;
-  usage_type: string | null;
-  address_type: string | null;
-  asn: string | null;
-  as_domain: string | null;
-  as_cidr: string | null;
-  as_usage_type: string | null;
-  district: string | null;
-  elevation: number | null;
-  weather_station: string | null;
-  fraud_score: number | null;
-  is_proxy: boolean | null;
-  proxy_type: string | null;
-  proxy_asn: string | null;
-  proxy_last_seen: string | null;
-  proxy_provider: string | null;
-  mobile_carrier: string | null;
-  mobile_country_code: string | null;
-  mobile_network_code: string | null;
-};
+import type { NormalizedIpInfo } from "@/lib/types";
+
+
 
 export default function Home() {
   const [query, setQuery] = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  const [data, setData] = React.useState<IPData | null>(null);
+  const [data, setData] = React.useState<NormalizedIpInfo | null>(null);
   const [ip, setIp] = React.useState<string>("");
   const [nowString, setNowString] = React.useState<string>("");
 
@@ -123,9 +93,6 @@ export default function Home() {
       {/* 顶部搜索 */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <h1 className="text-2xl font-bold">IP CHECK</h1>
-        <div className="flex items-center gap-2">
-          <ThemeToggle />
-        </div>
         <div className="flex-1" />
         <div className="flex w-full sm:w-auto gap-2">
           <Input
@@ -162,6 +129,18 @@ export default function Home() {
           </Card>
         );
       })()}
+
+      {/* 地图（有坐标时显示） */}
+      {coordsPresent && (
+        <Card>
+          <CardHeader>
+            <CardTitle>位置地图</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <IpMap lat={data?.coordinates?.lat ?? undefined} lon={data?.coordinates?.lon ?? undefined} />
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 基础信息（仅显示有数据的项） */}
@@ -311,4 +290,4 @@ function Field({ label, value, link }: { label: string; value: string; link?: st
       )}
     </div>
   );
-}
+}
