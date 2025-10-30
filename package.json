@@ -1,8 +1,8 @@
 {
   "name": "ipcheck",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
@@ -23,6 +23,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

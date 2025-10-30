@@ -1,141 +1,109 @@
-## iPCheck – 基于 Shadcn UI 的 IP 信息查询工具
+# IP CHECK
 
-一个使用 Next.js、Tailwind CSS v4 与 Shadcn UI 构建的 IP 信息查询页面，支持查询任意 IP，并默认显示访问者当前公网 IP 的信息。页面按模块清晰分栏展示基础信息、网络信息、位置详情、安全信息与移动信息，适配移动与桌面设备。
+版本：`v0.2.0`  
+最后修改日期：`2025-10-30`
 
----
+## 项目概述
 
-### 主要功能
-- 顶部搜索框查询 IP，初次加载自动显示当前公网 IP。
-- 信息分栏展示，字段无数据显示 `-`。
-- 本地时间随时区动态更新（每秒刷新）。
-- 城市坐标可点击打开地图（Google Maps）。
-- 响应式设计，兼容手机/平板/桌面。
+IP CHECK 是一个基于 Next.js 的轻量级 IP 信息查询与展示应用：
+- 查询本机或指定 IP 的基础信息（国家/地区、城市、ISP、时区等）。
+- 显示经纬度并在页面内渲染交互式地图（React-Leaflet + Leaflet）。
+- 提供两类 API：归一化结构的 `/api/ip` 与 ipinfo 兼容结构的 `/api/ipinfo`。
+- 统一浅色主题，已移除日/夜（Dark/Light）模式切换及相关逻辑。
 
-### 环境要求与依赖
-- Node.js `>= 18`
-- 包管理器：`npm`（或 `pnpm`/`yarn`/`bun`，示例以 `npm` 为主）
-- 关键依赖：
-  - `next@15.x`、`react@19.x`、`react-dom@19.x`
-  - `tailwindcss@^4`、`@tailwindcss/postcss`
-  - `lucide-react`、`class-variance-authority`、`tailwind-merge`
-- UI 与样式：Shadcn UI、Tailwind CSS v4（配置见 `postcss.config.mjs` 与 `app/globals.css`）
+主要特性：
+- 顶部搜索框查询 IP，首次加载自动显示当前公网 IP。
+- 模块化展示：基础信息、网络信息、位置详情、安全信息与移动信息。
+- 本地时间随所处时区动态刷新（每秒）。
+- 有坐标时在页面中呈现交互式地图；无坐标则显示提示。
 
-### 安装与使用
-1) 克隆并安装依赖
+## 技术栈
+- Next.js 15（Turbopack）、React 19、TypeScript 5
+- Tailwind CSS v4、shadcn 风格组件（`button`/`card`/`input`）
+- React-Leaflet + Leaflet（地图渲染）、Lucide 图标库
+
+## 安装指南
+
+环境要求：
+- Node.js `>= 18`（推荐 `>= 18.18`）
+- npm `>= 10`
+
+安装步骤：
 ```bash
-git clone https://github.com/<your-username>/ipcheck.git
-cd ipcheck
+git clone <repo-url>
+cd iPCheck
 npm install
 ```
 
-2) 开发运行
-```bash
-npm run dev
-# 本地访问
-# http://localhost:3000/
-```
+## 使用说明
 
-3) 构建与启动
-```bash
-npm run build
-npm run start
-```
+开发与构建：
+- 开发模式：
+  ```bash
+  npm run dev
+  # 访问 http://localhost:3000/
+  ```
+- 生产构建与启动：
+  ```bash
+  npm run build
+  npm start
+  # 默认端口 3000
+  ```
+- 代码检查：
+  ```bash
+  npm run lint
+  ```
 
-4) 页面使用
-- 进入首页，顶部输入框可直接搜索 IP，如 `8.8.8.8`。
-- 首次加载自动显示你的公网 IP 信息。
-- 点击“城市坐标”可打开地图查看位置。
+配置选项：
+- 端口：生产启动时可通过环境变量或参数修改端口
+  - Linux/macOS（bash）：
+    ```bash
+    PORT=4000 npm start
+    ```
+  - Windows（PowerShell）：
+    ```powershell
+    $env:PORT=4000; npm start
+    ```
+  - 或使用 CLI 参数（Next.js）：`next start -p 4000`
+- 地图瓦片源：如遇网络/代理限制导致 OSM 瓦片加载失败，可在 `components/ui/ip-map-inner.tsx` 中替换 `TileLayer.url`，并遵守相应使用条款与速率限制。
 
-### API 说明
-> 注：本 README 中的示例数据均为去敏感化占位（使用 RFC 5737 测试地址等），不包含真实个人或组织信息。
+API 说明：
+- `GET /api/ip`
+  - 返回归一化 IP 信息对象（`NormalizedIpInfo`，定义见 `lib/types.ts`）。
+  - 示例：
+    ```bash
+    curl "http://localhost:3000/api/ip?ip=8.8.8.8"
+    ```
+- `GET /api/ipinfo`
+  - 返回与 ipinfo.io 风格一致的精简 JSON（字段包含 `ip`、`city`、`region`、`country`、`loc`、`org`、`postal`、`timezone` 等）。
+  - 示例：
+    ```bash
+    curl "http://localhost:3000/api/ipinfo?ip=8.8.8.8"
+    ```
 
-#### 1) `GET /api/ip`
-- 说明：返回规范化的 IP 信息对象，支持查询参数 `ip`（可选）。
-- 示例：`/api/ip?ip=8.8.8.8`
-- 保留/私有地址处理：当来源 IP 为保留网段（如 `127.0.0.1`、`192.168.x.x`、`198.18.0.1`、`::1` 等），后端会自动改用公网 IP 进行查询。
-- 返回：`{ ip, data }`，其中 `data` 为扩展信息（国家、地区、城市、时区、本地时间、ISP、坐标、ASN 等）。
+行为与细节：
+- 保留/私有地址（如 `127.0.0.1`、`192.168.x.x`、`198.18.0.1`、`::1` 等）会优先尝试解析真实公网 IP；无法确定时返回提示。
+- 中间件：当 `curl /` 访问根路径时，会重写到 `/api/ipinfo?omit_readme=true&pretty=true`，方便命令行查看。
 
-#### 2) `GET /api/ipinfo`
-- 说明：返回与 ipinfo 风格一致的精简 JSON，字段包含 `ip`、`city`、`region`、`country`、`loc`、`org`、`postal`、`timezone`，并可选 `readme`。
-- 查询参数：
-  - `ip`：目标 IP（可选）。
-  - `omit_readme`：`1|true|yes` 时省略 `readme` 字段；对于 `curl` UA 会自动省略。
-  - `pretty`：`1|true|yes` 时返回带缩进与自动换行的 JSON；对于 `curl` UA 默认开启。
-- 保留/私有地址处理：与 `/api/ip` 一致，会优先尝试确定公网 IP。
-- 响应示例（省略 `readme`，并开启美观排版）：
-```json
-{
-  "ip": "203.0.113.42",
-  "city": "Example City",
-  "region": "Example Region",
-  "country": "US",
-  "loc": "0.0000,0.0000",
-  "org": "AS12345 EXAMPLE ORG",
-  "postal": "00000",
-  "timezone": "Etc/UTC"
-}
-```
+## 贡献指南
 
-#### 3) Curl 根路径支持
-- 说明：直接 `curl /` 将返回与 `/api/ipinfo` 相同的精简 JSON，默认开启美观排版与省略 `readme`。
-- 示例：
-  - `curl http://localhost:3000`
-  - 部署后：`curl https://你的域名/`
-- 行为细节：服务端会检测 `User-Agent` 包含 `curl/` 并自动走 `ipinfo` 路由；无法确定真实 IP 时会回退到公网 IP。
+欢迎参与贡献！建议流程如下：
+- Fork 仓库并创建特性分支（示例：`feat/map-fallback`、`refactor/types-unify`）。
+- 保持编码与样式风格一致（TypeScript、Tailwind v4、shadcn 组件）。
+- 提交前请运行：
+  ```bash
+  npm run lint
+  npm run build
+  ```
+- 通过 Pull Request 提交变更，清晰描述动机、方案与影响；必要时附上截图或日志。
 
-#### 前端示例（获取并展示数据）
-```ts
-// 使用 RFC 5737 测试地址进行示例（去敏感化）
-const res = await fetch('/api/ip?ip=203.0.113.42');
-const json = await res.json();
-console.log(json.ip, json.data.country, json.data.city);
-```
+## 许可证信息
 
-### 截图说明
-- 将截图放置在 `public/screenshots/` 目录下，并在下方通过相对路径引用：
-```md
-![首页截图](public/screenshots/home.png)
-```
-> 小贴士：部署到 GitHub Pages 或 Vercel 后，确保图片路径可直接访问。
+本项目采用 AGPLv3（GNU Affero General Public License v3）许可证。这是一种强 Copyleft 许可证，尤其针对网络服务场景：
+- 如果你修改并通过网络向用户提供本软件的运行服务（例如 Web 应用），你必须向这些用户提供你所运行版本的完整对应源代码。
+- 任何衍生作品必须同样以 AGPLv3 许可发布。
 
-### 贡献指南
-- 提交流程：
-  - Fork 仓库并创建分支（例如：`feat/search-toast`、`fix/reserved-range-fallback`）。
-  - 开发完成后提交 PR，并在描述中清晰说明变更点与测试范围。
-- 代码规范：
-  - 使用 TypeScript，保持类型明确；避免不必要的 `any`。
-  - 保持组件与样式风格一致（Shadcn UI 与 Tailwind v4）。
-  - 运行 `npm run lint` 确认通过。
-- 提交信息建议：
-  - `feat: xxx` / `fix: xxx` / `docs: xxx` / `refactor: xxx`
+详细条款见仓库根目录的 `LICENSE` 文件，官方说明：https://www.gnu.org/licenses/agpl-3.0.html
 
-### 常见问题（FAQ）
-- 为什么有些字段显示 `-`？
-  - 数据源未提供或该 IP 不适用（如移动信息、网络速度等）。
-- 为什么出现 “Reserved range”？
-  - 当来源 IP 为保留/私有地址时，后端会自动使用公网 IP 重试并返回有效数据。
-- 坐标地图打不开怎么办？
-  - 如无法访问 Google Maps，可将链接替换为高德/百度地图：
-  - 示例：`https://amap.com/place?query=<lat>,<lon>` 或 `https://api.map.baidu.com/marker?location=<lat>,<lon>`。
-- 如何部署到 Vercel？
-  - 直接导入仓库，使用默认配置即可；构建命令 `next build`，启动命令 `next start`。
+致谢：地图数据与瓦片由 OpenStreetMap 社区提供，使用前请阅读其使用条款与速率限制。
 
-### 联系方式与支持
-- 问题反馈：请通过 GitHub Issues 提交（`https://github.com/<your-username>/ipcheck/issues`）。
-- 也可在 PR 中附上复现截图与步骤，便于快速定位。
-
-### 许可证（License）
-- 本项目使用 MIT 协议，详见 `LICENSE` 文件。
-
-### 上传到 GitHub（示例）
-```bash
-# 初始化仓库
-git init
-git add -A
-git commit -m "init: iPCheck with MIT license"
-
-# 设置主分支并关联远程（替换为你的仓库地址）
-git branch -M main
-git remote add origin https://github.com/<your-username>/ipcheck.git
-git push -u origin main
-```
