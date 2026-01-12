@@ -6,7 +6,8 @@ import { IpSearch } from "@/components/modules/ip-search";
 import { IpOverview } from "@/components/modules/ip-overview";
 import { IpDetails } from "@/components/modules/ip-details";
 import { IpNetwork } from "@/components/modules/ip-network";
-import { IpLocationMap } from "@/components/modules/ip-location-map";
+import { IpCoordinates } from "@/components/modules/ip-coordinates";
+import { IpRiskScore } from "@/components/modules/ip-risk-score";
 import { isPresent } from "@/lib/utils";
 
 export default function Home() {
@@ -39,16 +40,25 @@ export default function Home() {
       <IpSearch 
         query={query} 
         setQuery={setQuery} 
-        onSearch={() => fetchIpInfo(query)} 
+        onSearch={() => fetchIpInfo(query, true)} 
         loading={loading} 
       />
 
       <div className="space-y-6">
         <IpOverview data={data} ip={ip} />
 
-        {coordsPresent && (
-          <IpLocationMap data={data} />
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {coordsPresent && (
+            <IpCoordinates 
+              lat={data?.coordinates?.lat} 
+              lon={data?.coordinates?.lon} 
+              onRefresh={() => fetchIpInfo(query, true)}
+            />
+          )}
+          {ip && (
+            <IpRiskScore ip={ip} />
+          )}
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <IpDetails 

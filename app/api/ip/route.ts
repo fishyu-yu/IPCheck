@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NormalizedIpInfo } from "@/lib/types";
-
-
+import { getClientIp, isPrivateIp } from "@/lib/ip-helper";
 
 // ipwho.is 响应类型（仅列出使用到的字段）
 type IpWhoResponse = {
@@ -31,42 +30,6 @@ type IpWhoResponse = {
     proxy_type?: string;
   };
 };
-
-function getClientIpFromHeaders(req: Request): string | null {
-  const forwarded = req.headers.get("x-forwarded-for") || req.headers.get("x-real-ip") || req.headers.get("cf-connecting-ip");
-  if (!forwarded) return null;
-  // x-forwarded-for 可能包含多个 IP，以逗号分隔，取第一个
-  const first = forwarded.split(",")[0].trim();
-  return first || null;
-}
-
-function isReservedIp(ip: string): boolean {
-  // 粗略判断常见保留/私有地址段
-  if (!ip) return true;
-  const v6 = ip.includes(":");
-  if (v6) {
-    const lower = ip.toLowerCase();
-    return (
-      lower === "::1" ||
-      lower.startsWith("fe80:") || // 链路本地
-      lower.startsWith("fc") || lower.startsWith("fd") || // ULA
-      lower.startsWith("::") // 未指定
-    );
-  }
-  // IPv4 判断
-  const parts = ip.split(".").map((x) => parseInt(x, 10));
-  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return true;
-  const [a, b] = parts;
-  if (a === 10) return true; // 10/8
-  if (a === 127) return true; // 127/8 回环
-  if (a === 0) return true; // 未指定
-  if (a === 192 && b === 168) return true; // 192.168/16
-  if (a === 172 && b >= 16 && b <= 31) return true; // 172.16/12
-  if (a === 169 && b === 254) return true; // 链路本地
-  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT 100.64/10
-  if (a === 198 && (b === 18 || b === 19)) return true; // 198.18/15 基准测试
-  return false;
-}
 
 async function fetchIpInfo(ip: string): Promise<IpWhoResponse> {
   const res = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`, { next: { revalidate: 60 } });
@@ -119,23 +82,43 @@ function normalize(ipwho: IpWhoResponse): NormalizedIpInfo {
 }
 
 export async function GET(req: Request) {
+  const requestId = Math.random().toString(36).substring(7);
   try {
     const { searchParams } = new URL(req.url);
     let ip = searchParams.get("ip");
 
+    // 日志记录：记录原始请求头以便调试
+    console.log(`[${requestId}] Incoming request headers:`, {
+      'x-forwarded-for': req.headers.get('x-forwarded-for'),
+      'cf-connecting-ip': req.headers.get('cf-connecting-ip'),
+      'x-real-ip': req.headers.get('x-real-ip'),
+      'ali-cdn-real-ip': req.headers.get('ali-cdn-real-ip'),
+      'x-client-ip': req.headers.get('x-client-ip')
+    });
+
     if (!ip) {
-      ip = getClientIpFromHeaders(req);
+      ip = getClientIp(req);
+      console.log(`[${requestId}] Resolved Client IP: ${ip}`);
+    } else {
+      console.log(`[${requestId}] User provided IP: ${ip}`);
     }
 
     // 若 IP 缺失或为保留/私有地址，则使用公网 IP 兜底
     async function getPublicIp(): Promise<string | ""> {
-      const ipifyRes = await fetch("https://api.ipify.org?format=json", { next: { revalidate: 60 } });
-      const ipify = await ipifyRes.json().catch(() => ({}));
-      return ipify?.ip || "";
+      try {
+        const ipifyRes = await fetch("https://api.ipify.org?format=json", { next: { revalidate: 60 } });
+        const ipify = await ipifyRes.json();
+        return ipify?.ip || "";
+      } catch (e) {
+        console.error(`[${requestId}] Failed to fetch public IP fallback`, e);
+        return "";
+      }
     }
 
-    if (!ip || isReservedIp(ip)) {
+    if (!ip || isPrivateIp(ip)) {
+      console.log(`[${requestId}] IP is missing or private (${ip}), fetching public IP fallback...`);
       ip = await getPublicIp();
+      console.log(`[${requestId}] Fallback IP: ${ip}`);
     }
 
     if (!ip) {
@@ -143,16 +126,19 @@ export async function GET(req: Request) {
     }
 
     let raw: IpWhoResponse = await fetchIpInfo(ip);
+    
+    // 如果返回保留地址错误，再尝试一次公网 IP (以防万一上一步没过滤干净)
     if (raw?.success === false) {
-      // 如果返回保留地址错误，再尝试一次公网 IP
       const msg = String(raw?.message || "");
       if (/reserved range/i.test(msg)) {
+        console.log(`[${requestId}] ipwho.is returned reserved range error, retrying with public IP...`);
         const pub = await getPublicIp();
-        if (pub) {
+        if (pub && pub !== ip) {
           ip = pub;
           raw = await fetchIpInfo(ip);
         }
       }
+      
       if (raw?.success === false) {
         return NextResponse.json({ error: raw?.message || "查询失败" }, { status: 400 });
       }
@@ -162,6 +148,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ ip, data });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
+    console.error(`[${requestId}] Error processing request:`, err);
     return NextResponse.json({ error: message || "服务器错误" }, { status: 500 });
   }
 }

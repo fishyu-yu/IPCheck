@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ModeToggle } from "@/components/mode-toggle";
 
 interface IpSearchProps {
   query: string;
@@ -29,7 +30,7 @@ export function IpSearch({ query, setQuery, onSearch, loading }: IpSearchProps) 
       
       <div className="flex-1" />
       
-      <div className="flex w-full sm:w-auto gap-2">
+      <div className="flex w-full sm:w-auto gap-2 items-center">
         <Input
           className="bg-background/50 border-primary/20 focus-visible:ring-primary/30 transition-all"
           placeholder="输入 IP 地址 (如 8.8.8.8)"
@@ -44,6 +45,7 @@ export function IpSearch({ query, setQuery, onSearch, loading }: IpSearchProps) 
         >
           {loading ? "查询中..." : "查询"}
         </Button>
+        <ModeToggle />
       </div>
     </motion.div>
   );

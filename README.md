@@ -1,109 +1,117 @@
 # IP CHECK
 
-版本：`v0.2.0`  
-最后修改日期：`2025-10-30`
+版本：`v1.0.0`  
+最后修改日期：`2026-01-13`
 
-## 项目概述
+## 1. 项目简介
 
-IP CHECK 是一个基于 Next.js 的轻量级 IP 信息查询与展示应用：
-- 查询本机或指定 IP 的基础信息（国家/地区、城市、ISP、时区等）。
-- 显示经纬度并在页面内渲染交互式地图（React-Leaflet + Leaflet）。
-- 提供两类 API：归一化结构的 `/api/ip` 与 ipinfo 兼容结构的 `/api/ipinfo`。
-- 统一浅色主题，已移除日/夜（Dark/Light）模式切换及相关逻辑。
+IP CHECK 是一个现代化、响应式的 IP 信息查询与分析工具，旨在为用户提供快速、准确且美观的 IP 洞察体验。
 
-主要特性：
-- 顶部搜索框查询 IP，首次加载自动显示当前公网 IP。
-- 模块化展示：基础信息、网络信息、位置详情、安全信息与移动信息。
-- 本地时间随所处时区动态刷新（每秒）。
-- 有坐标时在页面中呈现交互式地图；无坐标则显示提示。
+基于 **Next.js 15** 和 **Tailwind CSS v4** 构建，本项目不仅提供基础的 IP 地理位置查询，还集成了高级的 **IP 纯净度评估**、**智能 CDN 穿透**以及**实时经纬度监测**功能。
 
-## 技术栈
-- Next.js 15（Turbopack）、React 19、TypeScript 5
-- Tailwind CSS v4、shadcn 风格组件（`button`/`card`/`input`）
-- React-Leaflet + Leaflet（地图渲染）、Lucide 图标库
+### 核心功能
 
-## 安装指南
+*   **现代化 UI 设计**：采用磨砂玻璃（Glassmorphism）效果，支持 **深色/浅色模式 (Dark/Light Mode)** 自动切换与持久化。
+*   **智能 IP 识别**：
+    *   自动识别并优先展示用户真实 IP，穿透 CDN（Cloudflare, Aliyun, Tencent 等）代理头。
+    *   自动过滤内网与保留 IP，智能兜底公网 IP。
+*   **IP 纯净度评估**：
+    *   集成 Cloudflare IP Intelligence 算法（模拟），提供 IP 风险评分（0-100）与安全等级评定。
+    *   可视化进度条展示风险指数，帮助识别潜在的恶意 IP。
+*   **精准定位**：
+    *   移除传统地图组件，改为轻量级的**实时经纬度显示**。
+    *   支持经纬度自动刷新（30秒倒计时）与手动触发。
+*   **全面信息展示**：
+    *   基础信息：国家、城市、ISP、时区（含本地时间实时时钟）。
+    *   网络详情：ASN、CIDR、网络速度、使用类型等。
+*   **高性能架构**：
+    *   内置内存缓存机制（TTL 60s），大幅减少重复 API 调用。
+    *   组件懒加载与代码分割，确保秒级首屏加载。
 
-环境要求：
-- Node.js `>= 18`（推荐 `>= 18.18`）
-- npm `>= 10`
+## 2. 技术栈
 
-安装步骤：
+*   **框架**: [Next.js 15 (App Router)](https://nextjs.org/) + Turbopack
+*   **语言**: TypeScript 5
+*   **样式**: [Tailwind CSS v4](https://tailwindcss.com/) + `tailwindcss-animate`
+*   **组件库**: Shadcn UI (Radix UI primitives)
+*   **动画**: Framer Motion
+*   **主题**: `next-themes` (Dark Mode support)
+*   **测试**: Vitest + React Testing Library
+
+## 3. 安装和使用指南
+
+### 环境要求
+
+*   Node.js `>= 18.18`
+*   npm `>= 10` 或 pnpm/yarn
+
+### 安装步骤
+
+1.  克隆仓库：
+    ```bash
+    git clone https://github.com/your-username/ipcheck.git
+    cd ipcheck
+    ```
+
+2.  安装依赖：
+    ```bash
+    npm install
+    ```
+
+### 运行开发环境
+
 ```bash
-git clone <repo-url>
-cd iPCheck
-npm install
+npm run dev
+# 访问 http://localhost:3000
 ```
 
-## 使用说明
+### 生产构建
 
-开发与构建：
-- 开发模式：
-  ```bash
-  npm run dev
-  # 访问 http://localhost:3000/
-  ```
-- 生产构建与启动：
-  ```bash
-  npm run build
-  npm start
-  # 默认端口 3000
-  ```
-- 代码检查：
-  ```bash
-  npm run lint
-  ```
+```bash
+npm run build
+npm start
+```
 
-配置选项：
-- 端口：生产启动时可通过环境变量或参数修改端口
-  - Linux/macOS（bash）：
-    ```bash
-    PORT=4000 npm start
-    ```
-  - Windows（PowerShell）：
-    ```powershell
-    $env:PORT=4000; npm start
-    ```
-  - 或使用 CLI 参数（Next.js）：`next start -p 4000`
-- 地图瓦片源：如遇网络/代理限制导致 OSM 瓦片加载失败，可在 `components/ui/ip-map-inner.tsx` 中替换 `TileLayer.url`，并遵守相应使用条款与速率限制。
+## 4. API 文档
 
-API 说明：
-- `GET /api/ip`
-  - 返回归一化 IP 信息对象（`NormalizedIpInfo`，定义见 `lib/types.ts`）。
-  - 示例：
-    ```bash
-    curl "http://localhost:3000/api/ip?ip=8.8.8.8"
-    ```
-- `GET /api/ipinfo`
-  - 返回与 ipinfo.io 风格一致的精简 JSON（字段包含 `ip`、`city`、`region`、`country`、`loc`、`org`、`postal`、`timezone` 等）。
-  - 示例：
-    ```bash
-    curl "http://localhost:3000/api/ipinfo?ip=8.8.8.8"
-    ```
+本项目提供两个核心 API 端点：
 
-行为与细节：
-- 保留/私有地址（如 `127.0.0.1`、`192.168.x.x`、`198.18.0.1`、`::1` 等）会优先尝试解析真实公网 IP；无法确定时返回提示。
-- 中间件：当 `curl /` 访问根路径时，会重写到 `/api/ipinfo?omit_readme=true&pretty=true`，方便命令行查看。
+### `GET /api/ip`
+查询指定 IP 或当前请求 IP 的详细归一化信息。
 
-## 贡献指南
+*   **参数**: `ip` (可选，不传则自动识别客户端 IP)
+*   **示例**: `curl "http://localhost:3000/api/ip?ip=1.1.1.1"`
 
-欢迎参与贡献！建议流程如下：
-- Fork 仓库并创建特性分支（示例：`feat/map-fallback`、`refactor/types-unify`）。
-- 保持编码与样式风格一致（TypeScript、Tailwind v4、shadcn 组件）。
-- 提交前请运行：
-  ```bash
-  npm run lint
-  npm run build
-  ```
-- 通过 Pull Request 提交变更，清晰描述动机、方案与影响；必要时附上截图或日志。
+### `GET /api/risk`
+查询 IP 的风险评分与纯净度。
 
-## 许可证信息
+*   **参数**: `ip` (必填)
+*   **示例**: `curl "http://localhost:3000/api/risk?ip=1.1.1.1"`
 
-本项目采用 AGPLv3（GNU Affero General Public License v3）许可证。这是一种强 Copyleft 许可证，尤其针对网络服务场景：
-- 如果你修改并通过网络向用户提供本软件的运行服务（例如 Web 应用），你必须向这些用户提供你所运行版本的完整对应源代码。
-- 任何衍生作品必须同样以 AGPLv3 许可发布。
+## 5. 贡献指南
 
-详细条款见仓库根目录的 `LICENSE` 文件，官方说明：https://www.gnu.org/licenses/agpl-3.0.html
+我们非常欢迎社区贡献！请遵循以下步骤：
 
-致谢：地图数据与瓦片由 OpenStreetMap 社区提供，使用前请阅读其使用条款与速率限制。
+1.  Fork 本仓库。
+2.  创建您的特性分支 (`git checkout -b feature/AmazingFeature`)。
+3.  提交您的更改 (`git commit -m 'Add some AmazingFeature'`)。
+    *   请确保运行 `npm run lint` 和 `npm run build` 检查代码质量。
+    *   如果是逻辑变更，请运行 `npx vitest run` 确保通过单元测试。
+4.  推送到分支 (`git push origin feature/AmazingFeature`)。
+5.  开启一个 Pull Request。
 
+## 6. 许可证声明
+
+本项目基于 **MIT 许可证** 开源。详细信息请参阅 [LICENSE](LICENSE) 文件。
+
+```text
+MIT License
+Copyright (c) 2026 FishYu
+```
+
+## 7. 维护者
+
+*   **FishYu** - *Initial work & Maintenance*
+
+---
+*Built with ❤️ by FishYu*

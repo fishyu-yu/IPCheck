@@ -1,5 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { NormalizedIpInfo } from "@/lib/types";
+
+const CACHE_TTL = 60 * 1000; // 1 minute cache
+
+interface CacheItem {
+  data: NormalizedIpInfo | null;
+  ip: string;
+  timestamp: number;
+}
 
 export function useIpInfo() {
   const [query, setQuery] = useState("");
@@ -9,10 +17,45 @@ export function useIpInfo() {
   const [error, setError] = useState<string | null>(null);
   const [nowString, setNowString] = useState<string>("");
 
-  const fetchIpInfo = useCallback(async (targetIp?: string) => {
+  // Simple in-memory cache
+  const cache = useRef<Map<string, CacheItem>>(new Map());
+
+  // Function to update time string
+  const updateTime = useCallback((timeZone: string) => {
+    try {
+      const formatter = new Intl.DateTimeFormat("zh-CN", {
+        dateStyle: "medium",
+        timeStyle: "medium",
+        timeZone: timeZone,
+      });
+      setNowString(formatter.format(new Date()));
+    } catch (e) {
+      console.error("Invalid time zone:", timeZone);
+      setNowString("");
+    }
+  }, []);
+
+  const fetchIpInfo = useCallback(async (targetIp?: string, force: boolean = false) => {
     try {
       setLoading(true);
       setError(null);
+
+      const cacheKey = targetIp || "current";
+      const now = Date.now();
+
+      if (!force && cache.current.has(cacheKey)) {
+        const cached = cache.current.get(cacheKey)!;
+        if (now - cached.timestamp < CACHE_TTL) {
+          setData(cached.data);
+          setIp(cached.ip);
+          if (cached.data?.time_zone) {
+            updateTime(cached.data.time_zone);
+          }
+          setLoading(false);
+          return;
+        }
+      }
+
       const url = targetIp ? `/api/ip?ip=${encodeURIComponent(targetIp)}` : "/api/ip";
       const res = await fetch(url);
       const json = await res.json();
@@ -23,6 +66,13 @@ export function useIpInfo() {
       
       setData(json.data);
       setIp(json.ip);
+
+      // Update cache
+      cache.current.set(cacheKey, {
+        data: json.data,
+        ip: json.ip,
+        timestamp: now
+      });
       
       // Initialize time
       if (json.data?.time_zone) {
@@ -36,21 +86,7 @@ export function useIpInfo() {
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  const updateTime = (timeZone: string) => {
-    try {
-      const formatter = new Intl.DateTimeFormat("zh-CN", {
-        dateStyle: "medium",
-        timeStyle: "medium",
-        timeZone: timeZone,
-      });
-      setNowString(formatter.format(new Date()));
-    } catch (e) {
-      console.error("Invalid time zone:", timeZone);
-      setNowString("");
-    }
-  };
+  }, [updateTime]); // Added updateTime dependency
 
   // Clock effect
   useEffect(() => {
@@ -64,7 +100,7 @@ export function useIpInfo() {
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [data?.time_zone]);
+  }, [data?.time_zone, updateTime]);
 
   // Initial fetch
   useEffect(() => {
