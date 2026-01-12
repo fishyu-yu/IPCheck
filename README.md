@@ -49,7 +49,7 @@ IP CHECK 是一个现代化、响应式的 IP 信息查询与分析工具，旨�
 
 1.  克隆仓库：
     ```bash
-    git clone https://github.com/your-username/ipcheck.git
+    git clone https://github.com/fishyu-yu/IPCheck.git
     cd ipcheck
     ```
 

@@ -2,6 +2,10 @@
   "name": "ipcheck",
   "version": "1.0.0",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fishyu-yu/IPCheck.git"
+  },
   "license": "MIT",
   "scripts": {
     "dev": "next dev --turbopack",
