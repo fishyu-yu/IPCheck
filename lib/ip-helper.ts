@@ -65,19 +65,35 @@ export function isPrivateIp(ip: string): boolean {
 /**
  * 获取客户端真实 IP
  * 优先顺序:
- * 1. Cloudflare (CF-Connecting-IP)
- * 2. Standard Forwarded (X-Forwarded-For) - 取第一个非私有 IP
- * 3. Real IP (X-Real-IP)
- * 4. Vercel / Next.js 特定头 (x-vercel-forwarded-for 等)
+ * 1. NextRequest.ip (平台信任的 IP)
+ * 2. Vercel (x-vercel-forwarded-for)
+ * 3. Cloudflare (CF-Connecting-IP)
+ * 4. Fastly (fastly-client-ip)
+ * 5. Standard Forwarded (X-Forwarded-For) - 取第一个非私有 IP
+ * 6. Real IP (X-Real-IP)
+ * 7. AliCDN / Tencent CDN Headers
  */
 export function getClientIp(req: Request | NextRequest): string | null {
+  // 0. 优先使用 NextRequest.ip (如果可用，通常这是平台处理过的最可信 IP)
+  if ('ip' in req && req.ip && isValidIp(req.ip)) {
+    return req.ip;
+  }
+
   const headers = req.headers;
 
-  // 1. Cloudflare
+  // 1. Vercel Specific Header
+  const vercelIp = headers.get('x-vercel-forwarded-for');
+  if (vercelIp && isValidIp(vercelIp)) return vercelIp;
+
+  // 2. Cloudflare
   const cfIp = headers.get('cf-connecting-ip');
   if (cfIp && isValidIp(cfIp)) return cfIp;
 
-  // 2. X-Forwarded-For
+  // 3. Fastly
+  const fastlyIp = headers.get('fastly-client-ip');
+  if (fastlyIp && isValidIp(fastlyIp)) return fastlyIp;
+
+  // 4. X-Forwarded-For
   const forwardedFor = headers.get('x-forwarded-for');
   if (forwardedFor) {
     // 可能包含多个 IP: "client, proxy1, proxy2"
@@ -96,17 +112,15 @@ export function getClientIp(req: Request | NextRequest): string | null {
     }
   }
 
-  // 3. X-Real-IP (Nginx 等常用)
+  // 5. X-Real-IP (Nginx 等常用)
   const realIp = headers.get('x-real-ip');
   if (realIp && isValidIp(realIp)) return realIp;
 
-  // 4. AliCDN / Tencent CDN Specific Headers
-  // 阿里云 CDN 通常也会透传 X-Forwarded-For，但也可能有 Ali-CDN-Real-IP
+  // 6. AliCDN / Tencent CDN Specific Headers
   const aliRealIp = headers.get('ali-cdn-real-ip');
   if (aliRealIp && isValidIp(aliRealIp)) return aliRealIp;
 
-  // 腾讯云 CDN
-  const tencentRealIp = headers.get('x-client-ip'); // 部分腾讯云配置会用这个
+  const tencentRealIp = headers.get('x-client-ip');
   if (tencentRealIp && isValidIp(tencentRealIp)) return tencentRealIp;
 
   return null;

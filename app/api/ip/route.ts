@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import type { NormalizedIpInfo } from "@/lib/types";
 import { getClientIp, isPrivateIp } from "@/lib/ip-helper";
 
@@ -78,10 +78,11 @@ function normalize(ipwho: IpWhoResponse): NormalizedIpInfo {
     mobile_carrier: null,
     mobile_country_code: null,
     mobile_network_code: null,
+    81: null,
   };
 }
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const requestId = Math.random().toString(36).substring(7);
   try {
     const { searchParams } = new URL(req.url);
@@ -89,11 +90,12 @@ export async function GET(req: Request) {
 
     // 日志记录：记录原始请求头以便调试
     console.log(`[${requestId}] Incoming request headers:`, {
-      'x-forwarded-for': req.headers.get('x-forwarded-for'),
+      'next-ip': req.ip,
+      'x-vercel-forwarded-for': req.headers.get('x-vercel-forwarded-for'),
       'cf-connecting-ip': req.headers.get('cf-connecting-ip'),
+      'x-forwarded-for': req.headers.get('x-forwarded-for'),
+      'fastly-client-ip': req.headers.get('fastly-client-ip'),
       'x-real-ip': req.headers.get('x-real-ip'),
-      'ali-cdn-real-ip': req.headers.get('ali-cdn-real-ip'),
-      'x-client-ip': req.headers.get('x-client-ip')
     });
 
     if (!ip) {

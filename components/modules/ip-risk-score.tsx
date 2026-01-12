@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ShieldCheck, ShieldAlert, Shield } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Shield, ShieldQuestion } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface IpRiskScoreProps {
@@ -44,22 +44,40 @@ export function IpRiskScore({ ip }: IpRiskScoreProps) {
 
   if (!ip) return null;
 
-  const getScoreColor = (score: number) => {
-    if (score >= 80) return "text-green-500";
-    if (score >= 50) return "text-yellow-500";
-    return "text-red-500";
+  // 0-20分：深红色（#d62728）
+  // 21-40分：橙色（#ff7f0e）
+  // 41-60分：黄色（#f7e600）
+  // 61-80分：浅绿色（#7fdb6a）
+  // 81-100分：深绿色（#2ca02c）
+
+  const getColorClass = (score: number, type: 'text' | 'bg') => {
+    let color = "";
+    if (score <= 20) color = "#d62728";
+    else if (score <= 40) color = "#ff7f0e";
+    else if (score <= 60) color = "#f7e600";
+    else if (score <= 80) color = "#7fdb6a";
+    else color = "#2ca02c";
+
+    return type === 'text' ? `text-[${color}]` : `bg-[${color}]`;
   };
 
-  const getScoreBg = (score: number) => {
-    if (score >= 80) return "bg-green-500";
-    if (score >= 50) return "bg-yellow-500";
-    return "bg-red-500";
+  // 由于 Tailwind 动态类名无法被扫描到，我们需要使用 style 属性或者返回完整的类名
+  // 这里使用 style 属性来确保颜色准确，同时保留 Tailwind 的工具类
+  const getColorStyle = (score: number) => {
+    if (score <= 20) return "#d62728";
+    if (score <= 40) return "#ff7f0e";
+    if (score <= 60) return "#f7e600";
+    if (score <= 80) return "#7fdb6a";
+    return "#2ca02c";
   };
 
   const getIcon = (score: number) => {
-    if (score >= 80) return <ShieldCheck className="w-6 h-6 text-green-500" />;
-    if (score >= 50) return <Shield className="w-6 h-6 text-yellow-500" />;
-    return <ShieldAlert className="w-6 h-6 text-red-500" />;
+    const color = getColorStyle(score);
+    const style = { color };
+    
+    if (score <= 40) return <ShieldAlert className="w-6 h-6" style={style} />;
+    if (score <= 60) return <Shield className="w-6 h-6" style={style} />;
+    return <ShieldCheck className="w-6 h-6" style={style} />;
   };
 
   return (
@@ -84,7 +102,10 @@ export function IpRiskScore({ ip }: IpRiskScoreProps) {
                 <div className="flex items-center gap-3">
                   {getIcon(data.score)}
                   <div>
-                    <div className={`text-2xl font-bold ${getScoreColor(data.score)}`}>
+                    <div 
+                      className="text-2xl font-bold"
+                      style={{ color: getColorStyle(data.score) }}
+                    >
                       {data.score}
                       <span className="text-sm text-muted-foreground ml-1">/ 100</span>
                     </div>
@@ -97,7 +118,8 @@ export function IpRiskScore({ ip }: IpRiskScoreProps) {
               
               <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
                 <motion.div 
-                  className={`h-full ${getScoreBg(data.score)}`}
+                  className="h-full"
+                  style={{ backgroundColor: getColorStyle(data.score) }}
                   initial={{ width: 0 }}
                   animate={{ width: `${data.score}%` }}
                   transition={{ duration: 1, ease: "easeOut" }}
