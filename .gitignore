@@ -1,0 +1,15 @@
+node_modules/
+.pnpm-store/
+dist/
+dist-edgeone/
+.wrangler/
+.env
+.env.local
+.dev.vars
+coverage/
+test-results/
+playwright-report/
+functions/
+edge-functions/
+artifacts/
+*.log

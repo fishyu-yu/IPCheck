@@ -1,0 +1,9 @@
+pnpm-lock.yaml
+dist
+dist-edgeone
+node_modules
+.pnpm-store
+functions
+edge-functions
+artifacts
+.wrangler
