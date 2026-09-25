@@ -16,9 +16,9 @@ Date: 2026-09-25 (Asia/Shanghai). Platform: Windows, Node.js 24.19.0, pnpm 11.19
 | `pnpm dev` | Started successfully at http://127.0.0.1:5173 |
 | `pnpm preview --port 8787` | Cloudflare workerd started with ASSETS and rate-limit bindings |
 | `pnpm test:smoke` | Successful real provider / socket tests through workerd |
-| `pnpm check:cloudflare` | Not executed: automatic approval service hit its usage limit |
+| `pnpm check:cloudflare` | Passed; Worker bundle and ASSETS / rate-limit bindings verified without deployment |
 
-The last item is an additional Wrangler deploy dry-run, not the application build. Its automatic review could not complete; this was not an unsafe-action verdict. No attempt was made to bypass the review. Actual Cloudflare / EdgeOne account deployment has not been performed.
+The last item is an additional Wrangler deploy dry-run, not the application build. The first attempt was blocked by a temporary automatic-approval service usage limit. After the approval service recovered, a normally approved retry passed. No attempt was made to bypass review. Actual Cloudflare / EdgeOne account deployment has not been performed.
 
 ## Real network smoke observations
 
