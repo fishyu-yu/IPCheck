@@ -1,5 +1,7 @@
 # NetProbe
 
+项目仓库：[fishyu-yu/IPCheck](https://github.com/fishyu-yu/IPCheck)。新版保留原 IPCheck 的提交历史与 MIT 许可证。
+
 可直接运行的 Edge-first IP / 网络环境 / 风险证据 / 延迟 / 隐私检测平台。React 前端、Hono API 和两个部署适配器共享业务逻辑；生产环境不需要常驻 Node.js、数据库、文件系统或子进程。
 
 **结果原则：不伪造 IP、延迟、风险或泄露结论。** 缺少服务、浏览器能力或可靠字段时显示 Unknown、Not checked、Unsupported 或 Partial data。
@@ -9,6 +11,8 @@
 需要 Node.js 22.12+（本项目验证环境为 Node.js 24）和 pnpm。依赖版本由 `pnpm-lock.yaml` 固定。
 
 ```bash
+git clone https://github.com/fishyu-yu/IPCheck.git
+cd IPCheck
 pnpm install
 pnpm dev
 ```
