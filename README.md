@@ -2,6 +2,8 @@
 
 项目仓库：[fishyu-yu/IPCheck](https://github.com/fishyu-yu/IPCheck)。新版保留原 IPCheck 的提交历史与 MIT 许可证。
 
+Cloudflare Workers 在线地址：https://netprobe.yangzhan-ms.workers.dev 。生产域名分别配置在 `.env.production`（前端与 SEO）及 `wrangler.jsonc` 的 `SITE_URL` 中；更换域名后重新构建并部署。
+
 可直接运行的 Edge-first IP / 网络环境 / 风险证据 / 延迟 / 隐私检测平台。React 前端、Hono API 和两个部署适配器共享业务逻辑；生产环境不需要常驻 Node.js、数据库、文件系统或子进程。
 
 **结果原则：不伪造 IP、延迟、风险或泄露结论。** 缺少服务、浏览器能力或可靠字段时显示 Unknown、Not checked、Unsupported 或 Partial data。
