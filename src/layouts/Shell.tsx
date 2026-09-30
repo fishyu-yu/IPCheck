@@ -1,3 +1,4 @@
+import { localize, locale } from '../config/i18n';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
@@ -64,15 +65,28 @@ export function Shell() {
       window.removeEventListener('keydown', escape);
     };
   }, []);
-  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+  const [theme, setTheme] = useState(() => {
+    try {
+      return (
+        localStorage.getItem('theme') ||
+        (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+      );
+    } catch {
+      return 'light';
+    }
+  });
   const health = useHealth();
   const title = navigation.flatMap((s) => s.items).find((i) => i[0] === location.pathname)?.[1] || 'Tool';
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem('theme', theme);
+    try {
+      localStorage.setItem('theme', theme);
+    } catch {
+      /* Storage may be blocked in private browsing. */
+    }
   }, [theme]);
   useEffect(() => {
-    document.title = `${title} · ${site.name}`;
+    document.title = `${localize(title)} · ${site.name}`;
     let canonical = document.querySelector<HTMLLinkElement>('link[rel="canonical"]');
     if (!canonical) {
       canonical = document.createElement('link');
@@ -80,10 +94,10 @@ export function Shell() {
       document.head.append(canonical);
     }
     canonical.href = new URL(location.pathname, site.url).href;
-    const description = `${title} — transparent network diagnostics with explicit sources and privacy-first browser tools.`;
+    const description = `${localize(title)} — ${localize('Network diagnostics with clear sources and privacy-first browser tools.')}`;
     document.querySelector<HTMLMetaElement>('meta[name="description"]')?.setAttribute('content', description);
     for (const [property, content] of Object.entries({
-      'og:title': `${title} · ${site.name}`,
+      'og:title': `${localize(title)} · ${site.name}`,
       'og:description': description,
       'og:url': canonical.href,
     })) {
@@ -98,30 +112,37 @@ export function Shell() {
   }, [title, location.pathname]);
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">
+        {localize('Skip to content')}
+      </a>
       {open && (
-        <button className="drawer-backdrop" aria-label="Close navigation" onClick={() => setOpen(false)} />
+        <button
+          className="drawer-backdrop"
+          aria-label={localize('Close navigation')}
+          onClick={() => setOpen(false)}
+        />
       )}
       <aside className={'sidebar ' + (open ? 'open' : '')} inert={mobile && !open}>
         <NavLink to="/" className="brand" onClick={() => setOpen(false)}>
           <span className="brand-mark">
             <Network size={22} />
           </span>
-          {site.name}
-          <span className="brand-version">/ 01</span>
+          {localize(site.name)}
         </NavLink>
         <div className="workspace-selector">
           <span className="workspace-icon">
             <Globe2 size={17} />
           </span>
           <div>
-            Personal workspace<small>Network diagnostics</small>
+            {localize(' Personal workspace')}
+            <small>{localize('Network diagnostics')}</small>
           </div>
           <ChevronRight size={14} />
         </div>
-        <nav aria-label="Main navigation">
+        <nav aria-label={localize('Main navigation')}>
           {navigation.map((section) => (
             <div className="nav-section" key={section.label}>
-              <p>{section.label}</p>
+              <p>{localize(section.label)}</p>
               {section.items.map(([url, label, key]) => {
                 const Icon = icons[key] || Globe2;
                 return (
@@ -133,7 +154,7 @@ export function Shell() {
                     className={({ isActive }) => 'nav-item ' + (isActive ? 'active' : '')}
                   >
                     <Icon size={17} />
-                    <span>{label}</span>
+                    <span>{localize(label)}</span>
                     {key === 'overview' && <span className="nav-dot" />}
                   </NavLink>
                 );
@@ -144,7 +165,8 @@ export function Shell() {
         <div className="sidebar-bottom">
           <LockKeyhole size={15} />
           <div>
-            Private by design<small>Browser data stays with you.</small>
+            {localize(' Private by design')}
+            <small>{localize('Browser data stays with you.')}</small>
           </div>
         </div>
       </aside>
@@ -153,43 +175,49 @@ export function Shell() {
           <div className="breadcrumb">
             <button
               className="icon-button mobile-only"
-              aria-label={open ? 'Close menu' : 'Open menu'}
+              aria-label={localize(open ? 'Close menu' : 'Open menu')}
               onClick={() => setOpen(!open)}
             >
               {open ? <X size={20} /> : <Menu size={20} />}
             </button>
-            <span>Workspace</span>
+            <span>{localize('Workspace')}</span>
             <ChevronRight size={13} />
-            <strong>{title}</strong>
+            <strong>{localize(title)}</strong>
           </div>
           <div className="top-actions">
+            <span className="locale-label" title={localize('Language follows your browser')}>
+              {locale === 'zh' ? '简体中文' : 'English'}
+            </span>
             <span className="edge-status">
               <i className={health.isError ? 'offline' : ''} />
-              {health.data?.platform || 'Connecting'}
+              {localize(health.data?.platform || 'Connecting')}
             </span>
             <button
               className="icon-button"
-              aria-label="Toggle color theme"
+              aria-label={localize('Toggle color theme')}
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
             >
               {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
             </button>
-            <NavLink to="/developers" className="icon-button" aria-label="API help">
+            <NavLink to="/developers" className="icon-button" aria-label={localize('API help')}>
               <CircleHelp size={17} />
             </NavLink>
-            <span className="avatar">{site.name.slice(0, 2).toUpperCase()}</span>
           </div>
         </header>
-        <main>
+        <main id="main-content">
           <Outlet />
         </main>
         <footer>
           <span>
-            © {new Date().getFullYear()} {site.name} <span className="footer-separator">/</span>{' '}
-            {site.tagline}
+            © {localize(new Date().getFullYear())} {localize(site.name)}{' '}
+            <span className="footer-separator">/</span>
+            {localize(' ')}
+            {localize(site.tagline)}
           </span>
           <NavLink to="/developers">
-            <Terminal size={13} /> Built for transparency <ArrowUpRight size={13} />
+            <Terminal size={13} />
+            {localize(' Built for transparency ')}
+            <ArrowUpRight size={13} />
           </NavLink>
         </footer>
       </div>

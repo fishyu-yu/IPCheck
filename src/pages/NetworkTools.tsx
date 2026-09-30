@@ -1,3 +1,4 @@
+import { localize } from '../config/i18n';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Play, Square } from 'lucide-react';
 import { api } from '../services/api';
@@ -13,37 +14,44 @@ export function LatencyPage() {
   return (
     <>
       <PageTitle
-        title="Connection latency"
+        title={localize('Connection latency')}
         description="10 uncached HTTP requests from this browser to the current edge. This is not ICMP."
       />
-      <Card title="Browser → edge" action={<Badge tone="blue">Browser-side Detection</Badge>}>
+      <Card
+        title={localize('Browser → edge')}
+        action={<Badge tone="blue">{localize('Browser-side Detection')}</Badge>}
+      >
         <div className="test-toolbar">
           <RunButton busy={test.busy} onClick={() => void test.run()}>
-            Measure latency
+            {localize(' Measure latency ')}
           </RunButton>
           {test.busy && (
             <button className="button" onClick={test.stop}>
-              Stop
+              {localize(' Stop ')}
             </button>
           )}
-          <span aria-live="polite">{test.samples.length} / 10 requests</span>
+          <span aria-live="polite">
+            {localize(test.samples.length)}
+            {localize(' / 10 requests')}
+          </span>
         </div>
         <LatencyChart samples={test.samples} />
         <div className="stats-grid">
           {['min', 'average', 'median', 'p95', 'max', 'jitter'].map((key) => (
             <div key={key}>
-              <span>{key}</span>
+              <span>{localize(key)}</span>
               <strong>
-                {stats ? stats[key as keyof typeof stats].toFixed(2) : '—'}
-                <small> ms</small>
+                {localize(stats ? stats[key as keyof typeof stats].toFixed(2) : '—')}
+                <small>{localize(' ms')}</small>
               </strong>
             </div>
           ))}
         </div>
-        {test.error && <Notice error>{test.error}</Notice>}
+        {test.error && <Notice error>{localize(test.error)}</Notice>}
         <p className="helper">
-          RTT includes browser scheduling and HTTP overhead. P95 uses nearest rank. Jitter is the mean
-          absolute difference between consecutive successful RTT samples.
+          {localize(
+            ' RTT includes browser scheduling and HTTP overhead. P95 uses nearest rank. Jitter is the mean absolute difference between consecutive successful RTT samples. ',
+          )}
         </p>
       </Card>
     </>
@@ -110,7 +118,7 @@ export function PingPage({ tcp = false }: { tcp?: boolean }) {
   return (
     <>
       <PageTitle
-        title={tcp ? 'TCP Ping' : 'Ping'}
+        title={localize(tcp ? 'TCP Ping' : 'Ping')}
         description="Measure from the edge or an authenticated probe. Every mode describes what it actually measures."
       />
       <form
@@ -122,26 +130,26 @@ export function PingPage({ tcp = false }: { tcp?: boolean }) {
       >
         <div className="form-grid">
           <label>
-            Target hostname / IP
+            {localize(' Target hostname / IP ')}
             <input
               required
               value={host}
               onChange={(e) => setHost(e.target.value)}
-              placeholder="example.com"
+              placeholder={localize('example.com')}
               disabled={busy}
             />
           </label>
           <label>
-            Mode
+            {localize(' Mode ')}
             <select value={mode} onChange={(e) => setMode(e.target.value as typeof mode)} disabled={busy}>
-              <option value="http">HTTP HEAD</option>
-              <option value="tcp">TCP connection</option>
-              <option value="icmp">ICMP echo</option>
+              <option value="http">{localize('HTTP HEAD')}</option>
+              <option value="tcp">{localize('TCP connection')}</option>
+              <option value="icmp">{localize('ICMP echo')}</option>
             </select>
           </label>
           {mode === 'tcp' ? (
             <label>
-              Port
+              {localize(' Port ')}
               <input
                 type="number"
                 min={1}
@@ -153,17 +161,18 @@ export function PingPage({ tcp = false }: { tcp?: boolean }) {
             </label>
           ) : mode === 'http' ? (
             <label>
-              Protocol
+              {localize(' Protocol ')}
               <select value={protocol} onChange={(e) => setProtocol(e.target.value)} disabled={busy}>
-                <option value="http">HTTP</option>
-                <option value="https">HTTPS</option>
+                <option value="http">{localize('HTTP')}</option>
+                <option value="https">{localize('HTTPS')}</option>
               </select>
             </label>
           ) : null}
         </div>
         <div className="test-toolbar">
           <RunButton busy={busy} disabled={!supported}>
-            <Play size={14} /> Single test
+            <Play size={14} />
+            {localize(' Single test ')}
           </RunButton>
           <button
             type="button"
@@ -171,42 +180,52 @@ export function PingPage({ tcp = false }: { tcp?: boolean }) {
             disabled={busy || !host || !supported}
             onClick={() => void run(10)}
           >
-            Continuous test · 10
+            {localize(' Continuous test · 10 ')}
           </button>
           {busy && (
             <button type="button" className="button" onClick={() => controller.current?.abort()}>
-              <Square size={13} /> Stop
+              <Square size={13} />
+              {localize(' Stop ')}
             </button>
           )}
-          <span aria-live="polite">{results.length} completed</span>
+          <span aria-live="polite">
+            {localize(results.length)}
+            {localize(' completed')}
+          </span>
         </div>
         <p className="helper">
-          One request at a time · minimum 6.5 s between probes · maximum 10 / 120 s per run · 10 active
-          requests/min/IP shared across tools.
+          {localize(
+            ' One request at a time · minimum 6.5 s between probes · maximum 10 / 120 s per run · 10 active requests/min/IP shared across tools. ',
+          )}
         </p>
       </form>
       {!supported && (
         <Notice>
-          {mode === 'tcp'
-            ? 'TCP Ping unavailable on this edge provider'
-            : mode === 'icmp'
-              ? 'ICMP requires a configured Probe Agent'
-              : 'Active probes are unavailable'}
+          {localize(
+            mode === 'tcp'
+              ? 'TCP Ping unavailable on this edge provider'
+              : mode === 'icmp'
+                ? 'ICMP requires a configured Probe Agent'
+                : 'Active probes are unavailable',
+          )}
         </Notice>
       )}
       {mode === 'http' && (
         <Notice>
-          HTTP measures a HEAD request to /. Redirects are reported, never followed. HTTPS hostnames require a
-          remote agent that supports IP pinning and TLS hostname verification; unsupported runtimes return a
-          clear explanation.
+          {localize(
+            ' HTTP measures a HEAD request to /. Redirects are reported, never followed. HTTPS hostnames require a remote agent that supports IP pinning and TLS hostname verification; unsupported runtimes return a clear explanation. ',
+          )}
         </Notice>
       )}
-      {error && <Notice error>{error}</Notice>}
-      <Card title="Probe results" action={<Badge>{busy ? 'Measuring' : 'Ready'}</Badge>}>
+      {error && <Notice error>{localize(error)}</Notice>}
+      <Card
+        title={localize('Probe results')}
+        action={<Badge>{localize(busy ? 'Measuring' : 'Ready')}</Badge>}
+      >
         <LatencyChart samples={samples} />
         {!results.length ? (
           <Empty
-            title="Ready when you are"
+            title={localize('Ready when you are')}
             description="Enter a public target. No synthetic measurements are shown."
           />
         ) : (
@@ -215,36 +234,40 @@ export function PingPage({ tcp = false }: { tcp?: boolean }) {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Mode</th>
-                  <th>Result</th>
-                  <th>Time</th>
-                  <th>Target IP</th>
-                  <th>Source</th>
+                  <th>{localize('Mode')}</th>
+                  <th>{localize('Result')}</th>
+                  <th>{localize('Time')}</th>
+                  <th>{localize('Target IP')}</th>
+                  <th>{localize('Source')}</th>
                 </tr>
               </thead>
               <tbody>
                 {results.map((r, i) => (
                   <tr key={i}>
-                    <td>{i + 1}</td>
-                    <td>{r.mode.toUpperCase()}</td>
+                    <td>{localize(i + 1)}</td>
+                    <td>{localize(r.mode.toUpperCase())}</td>
                     <td>
-                      {r.supported
-                        ? r.status
-                          ? `HTTP ${r.status}`
-                          : r.success
-                            ? 'Connected'
-                            : 'Failed'
-                        : r.message}
+                      {localize(
+                        r.supported
+                          ? r.status
+                            ? `HTTP ${r.status}`
+                            : r.success
+                              ? 'Connected'
+                              : 'Failed'
+                          : r.message,
+                      )}
                     </td>
                     <td>
-                      {r.totalTime !== undefined || r.latency !== undefined
-                        ? `${(r.totalTime ?? r.latency)?.toFixed(2)} ms`
-                        : '—'}
+                      {localize(
+                        r.totalTime !== undefined || r.latency !== undefined
+                          ? `${(r.totalTime ?? r.latency)?.toFixed(2)} ms`
+                          : '—',
+                      )}
                     </td>
-                    <td className="mono">{r.targetIp || 'Unknown'}</td>
+                    <td className="mono">{localize(r.targetIp || 'Unknown')}</td>
                     <td>
-                      {r.source}
-                      <small>{r.detection}</small>
+                      {localize(r.source)}
+                      <small>{localize(r.detection)}</small>
                     </td>
                   </tr>
                 ))}
@@ -255,8 +278,9 @@ export function PingPage({ tcp = false }: { tcp?: boolean }) {
       </Card>
       {results.at(-1)?.server && (
         <Notice>
-          Reported Server header: {results.at(-1)?.server}. DNS / connect / TTFB breakdown: Unsupported by
-          runtime.
+          {localize(' Reported Server header: ')}
+          {localize(results.at(-1)?.server)}
+          {localize('. DNS / connect / TTFB breakdown: Unsupported by runtime. ')}
         </Notice>
       )}
     </>
@@ -290,57 +314,66 @@ export function DnsLookupPage({ reverse = false }: { reverse?: boolean }) {
   return (
     <>
       <PageTitle
-        title={reverse ? 'Reverse DNS' : 'DNS Lookup'}
+        title={localize(reverse ? 'Reverse DNS' : 'DNS Lookup')}
         description="Query configurable DNS-over-HTTPS resolvers. These are DNS records, not a DNS leak test."
       />
       <form className="card tool-form" onSubmit={(e) => void submit(e)}>
         <div className="form-grid">
           <label>
-            {reverse ? 'IP address' : 'Domain'}
+            {localize(reverse ? 'IP address' : 'Domain')}
             <input
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={reverse ? '8.8.8.8' : 'example.com'}
+              placeholder={localize(reverse ? '8.8.8.8' : 'example.com')}
             />
           </label>
           {!reverse && (
             <label>
-              Record type
+              {localize(' Record type ')}
               <select value={type} onChange={(e) => setType(e.target.value)}>
                 {['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'CAA'].map((t) => (
-                  <option key={t}>{t}</option>
+                  <option key={t}>{localize(t)}</option>
                 ))}
               </select>
             </label>
           )}
-          <RunButton busy={busy}>Query DNS</RunButton>
+          <RunButton busy={busy}>{localize('Query DNS')}</RunButton>
         </div>
       </form>
-      {error && <Notice error>{error}</Notice>}
-      <Card title="DNS records" action={<Badge tone="blue">Provider Detection</Badge>}>
+      {error && <Notice error>{localize(error)}</Notice>}
+      <Card
+        title={localize('DNS records')}
+        action={<Badge tone="blue">{localize('Provider Detection')}</Badge>}
+      >
         {data ? (
           <>
             <p className="helper">
-              Resolver: {data.source} · DNS status {data.status} {data.status === 3 ? '(NXDOMAIN)' : ''}
+              {localize(' Resolver: ')}
+              {localize(data.source)}
+              {localize(' · DNS status ')}
+              {localize(data.status)} {localize(data.status === 3 ? '(NXDOMAIN)' : '')}
             </p>
             <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>TTL</th>
-                    <th>Value</th>
+                    <th>{localize('Name')}</th>
+                    <th>{localize('Type')}</th>
+                    <th>{localize('TTL')}</th>
+                    <th>{localize('Value')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.answers.map((a, i) => (
                     <tr key={i}>
-                      <td>{a.name}</td>
-                      <td>{a.type}</td>
-                      <td>{a.TTL} s</td>
-                      <td className="mono">{a.data}</td>
+                      <td>{localize(a.name)}</td>
+                      <td>{localize(a.type)}</td>
+                      <td>
+                        {localize(a.TTL)}
+                        {localize(' s')}
+                      </td>
+                      <td className="mono">{localize(a.data)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -348,14 +381,14 @@ export function DnsLookupPage({ reverse = false }: { reverse?: boolean }) {
             </div>
             {!data.answers.length && (
               <Empty
-                title="No answers returned"
+                title={localize('No answers returned')}
                 description="The resolver returned no matching records. This is not a privacy verdict."
               />
             )}
           </>
         ) : (
           <Empty
-            title="Inspect a DNS record"
+            title={localize('Inspect a DNS record')}
             description="Select a record type and submit a domain to see real resolver answers."
           />
         )}
@@ -395,7 +428,7 @@ export function RemotePage({ trace = false }: { trace?: boolean }) {
   return (
     <>
       <PageTitle
-        title={trace ? 'Traceroute' : 'Global Ping'}
+        title={localize(trace ? 'Traceroute' : 'Global Ping')}
         description={
           trace
             ? 'Hop-by-hop visibility from a real probe agent.'
@@ -403,38 +436,43 @@ export function RemotePage({ trace = false }: { trace?: boolean }) {
         }
       />
       <form className="card tool-form" onSubmit={(e) => void run(e)}>
-        <label htmlFor="remote-target">Target hostname / IP</label>
+        <label htmlFor="remote-target">{localize('Target hostname / IP')}</label>
         <div className="input-row">
           <input
             id="remote-target"
             required
-            placeholder="example.com"
+            placeholder={localize('example.com')}
             value={host}
             onChange={(e) => setHost(e.target.value)}
           />
           <RunButton busy={busy} disabled={!health.data?.providers.remoteProbe}>
-            Run {trace ? 'traceroute' : 'global test'}
+            {localize(' Run ')}
+            {localize(trace ? 'traceroute' : 'global test')}
           </RunButton>
         </div>
       </form>
       {!health.data?.providers.remoteProbe && (
         <Notice>
-          {trace
-            ? 'Traceroute requires a Probe Agent.'
-            : 'Node unavailable. Configure PROBE_URL and PROBE_SECRET to connect a coordinator.'}
+          {localize(
+            trace
+              ? 'Traceroute requires a Probe Agent.'
+              : 'Node unavailable. Configure PROBE_URL and PROBE_SECRET to connect a coordinator.',
+          )}
         </Notice>
       )}
-      {error && <Notice error>{error}</Notice>}
+      {error && <Notice error>{localize(error)}</Notice>}
       {!trace && (
         <Card
-          title="Probe network"
+          title={localize('Probe network')}
           subtitle="Schematic positions · measurements only appear after a successful probe"
         >
           <svg
             className="probe-map"
             viewBox="0 0 900 300"
             role="img"
-            aria-label="Six proposed probe locations; target links appear only for real successful results"
+            aria-label={localize(
+              'Six proposed probe locations; target links appear only for real successful results',
+            )}
           >
             <defs>
               <pattern id="map-grid" width="30" height="30" patternUnits="userSpaceOnUse">
@@ -458,14 +496,16 @@ export function RemotePage({ trace = false }: { trace?: boolean }) {
                   )}
                   <circle cx={x} cy={y} r="5" fill={r?.success ? 'var(--accent)' : 'var(--muted)'} />
                   <text x={x + 9} y={y + (i === 1 ? 25 : i === 5 ? -14 : 4)} fill="var(--text)" fontSize="12">
-                    {node.location}
+                    {localize(node.location)}
                   </text>
                 </g>
               );
             })}
             {global?.some((n) => n.result.success) && (
               <text x="450" y="277" textAnchor="middle" fill="var(--accent)" fontSize="13">
-                Target: {host} (schematic)
+                {localize(' Target: ')}
+                {localize(host)}
+                {localize(' (schematic) ')}
               </text>
             )}
           </svg>
@@ -473,10 +513,10 @@ export function RemotePage({ trace = false }: { trace?: boolean }) {
             <table>
               <thead>
                 <tr>
-                  <th>Location</th>
-                  <th>Status</th>
-                  <th>Latency</th>
-                  <th>Target IP</th>
+                  <th>{localize('Location')}</th>
+                  <th>{localize('Status')}</th>
+                  <th>{localize('Latency')}</th>
+                  <th>{localize('Target IP')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -484,16 +524,18 @@ export function RemotePage({ trace = false }: { trace?: boolean }) {
                   const r = global?.find((g) => g.id === n.id)?.result;
                   return (
                     <tr key={n.id}>
-                      <td>{n.location}</td>
+                      <td>{localize(n.location)}</td>
                       <td>
-                        {r?.supported
-                          ? r.success
-                            ? 'Responded'
-                            : 'Failed'
-                          : r?.message || 'Node unavailable'}
+                        {localize(
+                          r?.supported
+                            ? r.success
+                              ? 'Responded'
+                              : 'Failed'
+                            : r?.message || 'Node unavailable',
+                        )}
                       </td>
-                      <td>{r?.latency !== undefined ? r.latency.toFixed(2) + ' ms' : '—'}</td>
-                      <td>{r?.targetIp || 'Unknown'}</td>
+                      <td>{localize(r?.latency !== undefined ? r.latency.toFixed(2) + ' ms' : '—')}</td>
+                      <td>{localize(r?.targetIp || 'Unknown')}</td>
                     </tr>
                   );
                 })}
@@ -503,26 +545,26 @@ export function RemotePage({ trace = false }: { trace?: boolean }) {
         </Card>
       )}
       {trace && (
-        <Card title="Route hops">
+        <Card title={localize('Route hops')}>
           {result?.supported ? (
             <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
                     {['Hop', 'IP', 'Hostname', 'ASN', 'Country', 'Latency'].map((x) => (
-                      <th key={x}>{x}</th>
+                      <th key={x}>{localize(x)}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {result.hops.map((h) => (
                     <tr key={h.hop}>
-                      <td>{h.hop}</td>
-                      <td>{h.ip || '*'}</td>
-                      <td>{h.hostname || 'Unknown'}</td>
-                      <td>{h.asn || 'Unknown'}</td>
-                      <td>{h.country || 'Unknown'}</td>
-                      <td>{h.latency === null ? '*' : h.latency + ' ms'}</td>
+                      <td>{localize(h.hop)}</td>
+                      <td>{localize(h.ip || '*')}</td>
+                      <td>{localize(h.hostname || 'Unknown')}</td>
+                      <td>{localize(h.asn || 'Unknown')}</td>
+                      <td>{localize(h.country || 'Unknown')}</td>
+                      <td>{localize(h.latency === null ? '*' : h.latency + ' ms')}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -530,7 +572,7 @@ export function RemotePage({ trace = false }: { trace?: boolean }) {
             </div>
           ) : (
             <Empty
-              title="No route measured"
+              title={localize('No route measured')}
               description={
                 result?.message ||
                 'A connected probe is required to report route hops. Browser fetch cannot perform traceroute.'
@@ -539,7 +581,7 @@ export function RemotePage({ trace = false }: { trace?: boolean }) {
           )}
         </Card>
       )}
-      <Card title="Probe contract">
+      <Card title={localize('Probe contract')}>
         <DataList
           data={{
             Transport: 'Authenticated HTTPS',

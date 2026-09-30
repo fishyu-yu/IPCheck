@@ -1,45 +1,36 @@
-# Verification record
+# 验证记录
 
-Date: 2026-09-25 (Asia/Shanghai). Platform: Windows, Node.js 24.19.0, pnpm 11.19.0.
+最近验证日期：2026-10-01（Asia/Shanghai）。环境：Windows、Node.js 24.19.0、Chrome。
 
-## Executed checks
+## 本次中文化与界面更新
 
-| Command / check | Result |
-| --- | --- |
-| `pnpm install` | Passed; esbuild and workerd build scripts explicitly permitted |
-| `pnpm typecheck` | Passed, TypeScript strict |
-| `pnpm lint` | Passed, no errors or warnings |
-| `pnpm test` | 72 passed across 3 suites |
-| `pnpm test:e2e` | 4 passed in Chrome |
-| `pnpm build` | Passed; Vite frontend, Pages worker, EdgeOne function, SEO and OpenAPI |
-| `pnpm build:edgeone` | Passed; isolated static output in dist-edgeone |
-| `pnpm dev` | Started successfully at http://127.0.0.1:5173 |
-| `pnpm preview --port 8787` | Cloudflare workerd started with ASSETS and rate-limit bindings |
-| `pnpm test:smoke` | Successful real provider / socket tests through workerd |
-| `pnpm check:cloudflare` | Passed; Worker bundle and ASSETS / rate-limit bindings verified without deployment |
+| 检查                    | 结果                                           |
+| ----------------------- | ---------------------------------------------- |
+| `pnpm build:ci`         | 通过：ESLint、单元测试、严格类型检查与生产构建 |
+| `pnpm test`             | 4 个测试文件，83 项全部通过                    |
+| `pnpm test:e2e`         | 6 项全部通过                                   |
+| `pnpm check:cloudflare` | 通过：Worker、静态资源和两个限流绑定已验证     |
+| `git diff --check`      | 无空白错误                                     |
 
-The last item is an additional Wrangler deploy dry-run, not the application build. The first attempt was blocked by a temporary automatic-approval service usage limit. After the approval service recovered, a normally approved retry passed. No attempt was made to bypass review. Actual Cloudflare / EdgeOne account deployment has not been performed.
+浏览器验证覆盖全部 19 个页面、中英文选择、中文错误提示、页面标题和无障碍标签。中文首选语言显示简体中文；日语首选语言正确回退英文。验证了明暗主题、390px 移动端导航和无页面横向溢出。
 
-## Real network smoke observations
+浏览器指纹生成 64 字符 SHA-256，原有测试确认计算过程没有额外网络请求；延迟工具执行 10 次真实本地请求。未配置的服务保持明确的不可用状态，所有页面无未捕获运行时异常。桌面明暗主题和移动端截图位于未跟踪的 `artifacts/`。
 
-- Geo lookup of the explicit public test address 8.8.8.8 returned ipwho.is geography and Google / AS15169.
-- RIPEstat AS13335 returned organization, ARIN and 5,462 observed prefixes (2,423 IPv4 / 3,039 IPv6) at test time. These are observed provider results, not fixtures or permanent claims.
-- DNS-over-HTTPS returned real A records for example.com and PTR dns.google. for 8.8.8.8.
-- Workerd `connect()` to the explicit public test target 1.1.1.1:443 succeeded and returned measured socket-open duration.
-- Pinned HTTP HEAD to 1.1.1.1:80 returned a real 301 and Server: cloudflare. Redirect was not followed.
-- The Node development adapter returned its correct TCP unsupported status and successfully executed its real HTTP HEAD implementation.
+## 既有真实网络验证
 
-A runtime incompatibility with `redirect: 'error'` initially prevented workerd Provider calls. It was fixed by using `redirect: 'manual'` and rejecting non-2xx results. The subsequent real-network run passed. Timing numbers from local workerd are local measurements, not production edge latency.
+2026-09-25 曾在本地 Cloudflare workerd 下执行网络冒烟验证：
 
-## Browser verification
+- ipwho.is 对显式测试地址 `8.8.8.8` 返回地理与 Google / AS15169 信息。
+- RIPEstat 对 AS13335 返回组织、ARIN 和实际公告前缀。
+- DoH 返回 `example.com` 的 A 记录以及 `8.8.8.8` 的 PTR 记录。
+- TCP 连接 `1.1.1.1:443` 成功，返回实际建连耗时。
+- 固定 IP 的 HTTP HEAD 请求 `1.1.1.1:80` 返回真实 301，未跟随重定向。
+- 本地开发适配器正确报告不支持 TCP，并执行了实际 HTTP HEAD。
 
-- All tool routes rendered with no uncaught page errors.
-- Deep / light themes and the 390px mobile drawer worked; no horizontal page overflow.
-- Fingerprint generated a 64-character SHA-256 locally with **zero new network requests** during the computation.
-- Latency performed ten actual local API requests and rendered measured statistics.
-- Unconfigured TCP / DNS Collector features remained clearly unavailable.
-- Desktop, light and mobile screenshots were inspected; generated screenshots live in ignored `artifacts/`.
+这些是当时的观测，不是固定服务保证；本地耗时不代表生产边缘延迟。EdgeOne 专用构建也曾通过本地验证。
 
-## Scope of unverified external infrastructure
+## 发布与外部服务边界
 
-Paid IPinfo / IPQualityScore / AbuseIPDB production credentials were not supplied; their normalization and failure behavior are tested with clearly separated test fixtures. Real ICMP agents, distributed nodes and a DNS authority were not supplied or deployed. Their transport, authentication, schemas and UI are implemented with explicit unsupported states. EdgeOne's adapter and bundle are tested locally, not certified against a live account.
+Cloudflare Worker 已在此前发布到 [线上站点](https://netprobe.yangzhan-ms.workers.dev)。本次更新的发布结果以 GitHub 提交与 Cloudflare 部署记录为准；部署预检本身不会更新线上版本，也不证明 Git 自动部署连接已建立。
+
+未提供付费风险数据源密钥、真实 ICMP / 路由追踪节点或权威 DNS 采集服务器。相关调用协议、数据校验与降级界面已实现，第三方归一化使用独立测试样例验证，不能将这些测试等同于真实服务验收。EdgeOne 适配器未在真实账号完成生产验证。

@@ -1,3 +1,4 @@
+import { localize, countryName } from '../config/i18n';
 import { useState, type FormEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
@@ -35,7 +36,7 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
     <>
       <PageTitle
         eyebrow="IP INTELLIGENCE"
-        title={{ ip: 'IP Lookup', asn: 'ASN Lookup', risk: 'Risk Analysis' }[kind]}
+        title={localize({ ip: 'IP Lookup', asn: 'ASN Lookup', risk: 'Risk Analysis' }[kind])}
         description={
           {
             ip: 'Geography, network ownership, and the evidence behind each result.',
@@ -45,7 +46,9 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
         }
       />
       <form className="tool-form card" onSubmit={submit}>
-        <label htmlFor="lookup">{kind === 'asn' ? 'Autonomous system' : 'IPv4 / IPv6 address'}</label>
+        <label htmlFor="lookup">
+          {localize(kind === 'asn' ? 'Autonomous system' : 'IPv4 / IPv6 address')}
+        </label>
         <div className="input-row">
           <div className="input-icon">
             <Search size={17} />
@@ -54,37 +57,39 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
               required
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={kind === 'asn' ? 'AS13335' : 'Enter IPv4 / IPv6'}
+              placeholder={localize(kind === 'asn' ? 'AS13335' : 'Enter IPv4 / IPv6')}
               spellCheck={false}
               autoComplete="off"
             />
           </div>
-          <RunButton busy={lookup.isPending}>Look up</RunButton>
+          <RunButton busy={lookup.isPending}>{localize('Look up')}</RunButton>
         </div>
         <p className="helper">
-          {kind === 'asn'
-            ? 'Source: RIPEstat. Prefixes reflect observed BGP announcements.'
-            : 'Queries are sent to configured providers. Results can be incomplete or differ between sources.'}
+          {localize(
+            kind === 'asn'
+              ? 'Source: RIPEstat. Prefixes reflect observed BGP announcements.'
+              : 'Queries are sent to configured providers. Results can be incomplete or differ between sources.',
+          )}
         </p>
       </form>
-      {lookup.error && <Notice error>{lookup.error.message}</Notice>}
+      {lookup.error && <Notice error>{localize(lookup.error.message)}</Notice>}
       {lookup.isPending && <Skeleton lines={5} />}
       {kind === 'risk' && <RiskPanel data={data as RiskResult | undefined} />}
       {ip && (
         <>
           <div className="result-title">
-            <h2 className="mono">{ip.ip || 'Current public IP unavailable'}</h2>
+            <h2 className="mono">{localize(ip.ip || 'Current public IP unavailable')}</h2>
             {ip.ip && <CopyButton text={ip.ip} />}
             <DetectionBadge type={ip.detection} />
-            {ip.partial && <Badge tone="yellow">Partial data</Badge>}
+            {ip.partial && <Badge tone="yellow">{localize('Partial data')}</Badge>}
           </div>
           <div className="two-columns">
-            <Card title="Basic information">
+            <Card title={localize('Basic information')}>
               <DataList
                 data={{
                   IP: ip.ip,
                   'IP version': ip.version ? 'IPv' + ip.version : undefined,
-                  Country: ip.country,
+                  Country: countryName(ip.countryCode, ip.country),
                   'Country code': ip.countryCode,
                   Region: ip.region,
                   City: ip.city,
@@ -95,7 +100,7 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
                 }}
               />
             </Card>
-            <Card title="Network">
+            <Card title={localize('Network')}>
               <DataList
                 data={{
                   ASN: ip.asn ? 'AS' + ip.asn : undefined,
@@ -108,9 +113,11 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
                   'IP type': ip.type.length
                     ? ip.type.map((v, i) => (
                         <div key={i}>
-                          {v.value || 'Unknown'}
+                          {localize(v.value === 'Mobile' ? 'Mobile network' : v.value || 'Unknown')}
                           <small>
-                            {v.source} · confidence {v.confidence === null ? 'Unknown' : v.confidence}
+                            {localize(v.source)}
+                            {localize(' · confidence ')}
+                            {localize(v.confidence === null ? 'Unknown' : v.confidence)}
                           </small>
                         </div>
                       ))
@@ -121,15 +128,16 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
               />
             </Card>
           </div>
-          <Card title="Sources & confidence">
+          <Card title={localize('Sources & confidence')}>
             <p>
-              Geolocation is an estimate from provider records, not precise device location. Unknown
-              confidence means the provider supplied no confidence metric.
+              {localize(
+                ' Geolocation is an estimate from provider records, not precise device location. Unknown confidence means the provider supplied no confidence metric. ',
+              )}
             </p>
             <DataList data={ip.fieldSources || {}} />
-            <p className="helper">{ip.sources.join(' · ') || 'No provider data'}</p>
+            <p className="helper">{localize(ip.sources.join(' · ') || 'No provider data')}</p>
             {ip.warnings.map((w) => (
-              <Notice key={w}>{w}</Notice>
+              <Notice key={w}>{localize(w)}</Notice>
             ))}
           </Card>
         </>
@@ -137,7 +145,10 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
       {asn && (
         <>
           <div className="two-columns">
-            <Card title={'AS' + asn.asn} action={<Badge tone="blue">Provider Detection</Badge>}>
+            <Card
+              title={localize('AS' + asn.asn)}
+              action={<Badge tone="blue">{localize('Provider Detection')}</Badge>}
+            >
               <DataList
                 data={{
                   Organization: asn.organization,
@@ -149,14 +160,15 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
                 }}
               />
             </Card>
-            <Card title="Data availability">
+            <Card title={localize('Data availability')}>
               <Notice>
-                Prefixes are announcements observed by RIPE RIS, not a complete ownership inventory. Country
-                and upstream information remain Unknown without a reliable provider.
+                {localize(
+                  ' Prefixes are announcements observed by RIPE RIS, not a complete ownership inventory. Country and upstream information remain Unknown without a reliable provider. ',
+                )}
               </Notice>
               {asn.warnings.map((w) => (
                 <p className="helper" key={w}>
-                  {w}
+                  {localize(w)}
                 </p>
               ))}
             </Card>
@@ -166,12 +178,12 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
               ['IPv4 prefixes', asn.ipv4],
               ['IPv6 prefixes', asn.ipv6],
             ].map(([title, prefixes]) => (
-              <Card key={String(title)} title={String(title)}>
+              <Card key={String(title)} title={localize(String(title))}>
                 <div className="prefix-list">
                   {(prefixes as string[]).length ? (
-                    (prefixes as string[]).map((p) => <code key={p}>{p}</code>)
+                    (prefixes as string[]).map((p) => <code key={p}>{localize(p)}</code>)
                   ) : (
-                    <p className="text-muted">No prefix data returned</p>
+                    <p className="text-muted">{localize('No prefix data returned')}</p>
                   )}
                 </div>
               </Card>
@@ -181,7 +193,7 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
       )}
       {kind === 'asn' && !data && !lookup.isPending && (
         <Empty
-          title="Explore a network"
+          title={localize('Explore a network')}
           description="Enter an ASN to retrieve organization and prefix data from RIPEstat."
         />
       )}

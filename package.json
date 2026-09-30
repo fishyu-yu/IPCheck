@@ -10,6 +10,7 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "build": "tsc --noEmit && vite build && node scripts/build.mjs",
+    "build:ci": "pnpm lint && pnpm test && pnpm build",
     "build:edgeone": "pnpm build && node scripts/edgeone.mjs",
     "preview": "wrangler dev",
     "deploy:cloudflare": "pnpm build && wrangler deploy",

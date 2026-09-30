@@ -1,3 +1,4 @@
+import { localize } from '../config/i18n';
 import { ShieldCheck } from 'lucide-react';
 import type { RiskResult } from '../types';
 import { riskWeights } from '../config/risk.config';
@@ -6,13 +7,13 @@ export function RiskPanel({ data, compact = false }: { data?: RiskResult; compac
   const keys = Object.keys(riskWeights) as (keyof typeof riskWeights)[];
   return (
     <Card
-      title="Risk analysis"
+      title={localize('Risk analysis')}
       subtitle="Evidence, not assumptions"
       action={<ShieldCheck size={17} className="text-muted" />}
     >
       <div className="risk-summary">
         <div className="risk-ring" style={{ '--risk': (data?.score ?? 0) + '%' } as React.CSSProperties}>
-          <strong>{data?.score ?? '—'}</strong>
+          <strong>{localize(data?.score ?? '—')}</strong>
           <span>/ 100</span>
         </div>
         <div>
@@ -27,12 +28,15 @@ export function RiskPanel({ data, compact = false }: { data?: RiskResult; compac
                     : 'red'
             }
           >
-            {data?.level || 'Not checked'}
+            {localize(data?.level || 'Not checked')}
           </Badge>
           <p>
-            {data?.checked ?? 0} of {keys.length} signals checked
+            {localize(data?.checked ?? 0)}
+            {localize(' of ')}
+            {localize(keys.length)}
+            {localize(' signals checked ')}
           </p>
-          <small>Lower score = lower observed risk</small>
+          <small>{localize('Lower score = lower observed risk')}</small>
         </div>
       </div>
       <div className="signal-list">
@@ -41,7 +45,9 @@ export function RiskPanel({ data, compact = false }: { data?: RiskResult; compac
           return (
             <div key={key}>
               <span>
-                {key === 'vpn' ? 'VPN' : key === 'tor' ? 'Tor' : key.charAt(0).toUpperCase() + key.slice(1)}
+                {localize(
+                  key === 'vpn' ? 'VPN' : key === 'tor' ? 'Tor' : key.charAt(0).toUpperCase() + key.slice(1),
+                )}
               </span>
               <div>
                 {all.length ? (
@@ -49,21 +55,27 @@ export function RiskPanel({ data, compact = false }: { data?: RiskResult; compac
                     <span
                       key={i}
                       className={'signal ' + (s.value ? 'warning' : 'clear')}
-                      title={`Source: ${s.source}; confidence: ${s.confidence === null ? 'not supplied' : s.confidence}; Provider Detection`}
+                      title={localize(
+                        `Source: ${s.source}; confidence: ${s.confidence === null ? 'not supplied' : s.confidence}; Provider Detection`,
+                      )}
                     >
-                      {typeof s.value === 'number'
-                        ? `${Math.round(s.value * 100)}% evidence`
-                        : s.value
-                          ? 'Detected'
-                          : 'Not detected'}
+                      {localize(
+                        typeof s.value === 'number'
+                          ? `${Math.round(s.value * 100)}% evidence`
+                          : s.value
+                            ? 'Detected'
+                            : 'Not detected',
+                      )}
                       <small>
-                        {s.source} · confidence{' '}
-                        {s.confidence === null ? 'Unknown' : `${Math.round(s.confidence * 100)}%`}
+                        {localize(s.source)}
+                        {localize(' · confidence')}
+                        {localize(' ')}
+                        {localize(s.confidence === null ? 'Unknown' : `${Math.round(s.confidence * 100)}%`)}
                       </small>
                     </span>
                   ))
                 ) : (
-                  <span className="text-muted">Not checked</span>
+                  <span className="text-muted">{localize('Not checked')}</span>
                 )}
               </div>
             </div>
@@ -73,22 +85,28 @@ export function RiskPanel({ data, compact = false }: { data?: RiskResult; compac
       {!compact && (
         <>
           <Notice>
-            {data?.model ||
-              'This score is a weighted model, not an absolute safety verdict. Configure a risk provider to obtain evidence.'}
+            {localize(
+              data?.model ||
+                'This score is a weighted model, not an absolute safety verdict. Configure a risk provider to obtain evidence.',
+            )}
           </Notice>
           {data?.conflicts.length ? (
             <Notice error>
-              Conflicting Data: {data.conflicts.join(', ')}. All provider findings are retained.
+              {localize(' Conflicting Data: ')}
+              {data.conflicts.map((key) => localize(key)).join('、')}
+              {localize('. All provider findings are retained. ')}
             </Notice>
           ) : null}
           {data?.partial && (
             <Notice>
-              Partial data. Unchecked signals can change the score; a low score is not an assurance of safety.
+              {localize(
+                ' Partial data. Unchecked signals can change the score; a low score is not an assurance of safety. ',
+              )}
             </Notice>
           )}
           {data?.warnings.map((w) => (
             <p key={w} className="helper">
-              {w}
+              {localize(w)}
             </p>
           ))}
         </>

@@ -1,3 +1,4 @@
+import { localize, countryName } from '../config/i18n';
 import {
   Activity,
   ArrowRight,
@@ -33,30 +34,38 @@ export default function Overview() {
     risk = useRisk(info?.ip);
   const latency = useLatency();
   const stats = statistics(latency.samples);
-  const location = [info?.city, info?.country || info?.countryCode].filter(Boolean).join(', ');
+  const location = [
+    info?.city,
+    info?.country || info?.countryCode ? countryName(info.countryCode, info.country) : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   return (
     <>
       <PageTitle
-        title="Your network, in focus."
+        title={localize('Your network, in focus.')}
         description="A clear view of your connection, performance, and privacy."
         action={
           <button className="button" disabled={query.isFetching} onClick={() => void query.refetch()}>
-            <RefreshCw size={14} className={query.isFetching ? 'spin' : ''} /> Refresh analysis
+            <RefreshCw size={14} className={query.isFetching ? 'spin' : ''} />
+            {localize(' Refresh analysis ')}
           </button>
         }
       />
       <section className="ip-hero">
         <div className="ip-hero-content">
           <div className="hero-label">
-            <span className="live-dot" /> YOUR PUBLIC IP{' '}
-            <Badge>{info?.version ? 'IPv' + info.version : 'AWAITING EDGE'}</Badge>
+            <span className="live-dot" />
+            {localize(' YOUR PUBLIC IP')}
+            {localize(' ')}
+            <Badge>{localize(info?.version ? 'IPv' + info.version : 'AWAITING EDGE')}</Badge>
           </div>
           {query.isLoading ? (
             <Skeleton lines={1} />
           ) : (
             <div className="ip-line">
               <strong className={!info?.ip ? 'ip-unavailable' : ''}>
-                {info?.ip || 'Not available locally'}
+                {localize(info?.ip || 'Not available locally')}
               </strong>
               {info?.ip && <CopyButton text={info.ip} />}
             </div>
@@ -64,20 +73,22 @@ export default function Overview() {
           <div className="ip-meta">
             <span>
               <MapPin size={14} />
-              {location || 'Location unknown'}
+              {localize(location || 'Location unknown')}
             </span>
             <span>
               <Network size={14} />
-              {info?.asn ? 'AS' + info.asn : 'ASN unknown'}
+              {localize(info?.asn ? 'AS' + info.asn : 'ASN unknown')}
             </span>
             <span>
               <Globe2 size={14} />
-              {info?.organization || 'Network unknown'}
+              {localize(info?.organization || 'Network unknown')}
             </span>
           </div>
           <div className="hero-source">
             <DetectionBadge type={info?.detection || 'Estimated / Unsupported'} />
-            <span>{info?.sources.join(' · ') || 'Connect through a supported edge deployment'}</span>
+            <span>
+              {localize(info?.sources.join(' · ') || 'Connect through a supported edge deployment')}
+            </span>
           </div>
         </div>
         <div className="hero-art" aria-hidden="true">
@@ -99,10 +110,10 @@ export default function Overview() {
             <circle cx="174" cy="63" r="5" className="globe-point" />
             <path d="M174 63L211 28H253" fill="none" stroke="var(--accent)" strokeDasharray="3 3" />
           </svg>
-          <span>CONNECTED WORLD / 001</span>
+          <span>{localize('CONNECTED WORLD / 001')}</span>
         </div>
       </section>
-      {query.error && <Notice error>{query.error.message}</Notice>}
+      {query.error && <Notice error>{localize(query.error.message)}</Notice>}
       <div className="summary-grid">
         {[
           {
@@ -145,21 +156,21 @@ export default function Overview() {
             <div className="summary-top">
               <span>
                 <item.icon size={16} />
-                {item.label}
+                {localize(item.label)}
               </span>
               <ArrowUpRight size={14} />
             </div>
-            <strong>{item.value}</strong>
-            <p>{item.detail}</p>
-            <span className="summary-tag">{item.tag}</span>
+            <strong>{localize(item.value)}</strong>
+            <p>{localize(item.detail)}</p>
+            <span className="summary-tag">{localize(item.tag)}</span>
           </Link>
         ))}
       </div>
       <div className="overview-grid">
         <Card
-          title="Network information"
+          title={localize('Network information')}
           subtitle="Your connection at a glance"
-          action={<Badge tone="blue">{info?.edge?.provider || 'Edge metadata'}</Badge>}
+          action={<Badge tone="blue">{localize(info?.edge?.provider || 'Edge metadata')}</Badge>}
         >
           {query.isLoading ? (
             <Skeleton />
@@ -170,50 +181,55 @@ export default function Overview() {
                 'IP version': info?.version ? 'IPv' + info.version : undefined,
                 'ISP / Organization': info?.isp || info?.organization,
                 'Autonomous system': info?.asn ? 'AS' + info.asn : undefined,
-                'Network type': info?.type[0]?.value || 'Unknown',
+                'Network type':
+                  info?.type[0]?.value === 'Mobile' ? 'Mobile network' : info?.type[0]?.value || 'Unknown',
                 'Edge POP': info?.edge?.colo || 'Unknown',
                 Timezone: info?.timezone,
               }}
             />
           )}
           <Link className="card-link" to="/ip">
-            Explore IP intelligence <ArrowRight size={14} />
+            {localize(' Explore IP intelligence ')}
+            <ArrowRight size={14} />
           </Link>
         </Card>
         <RiskPanel compact data={risk.data} />
         <Card
-          title="Connection latency"
+          title={localize('Connection latency')}
           subtitle="Your browser → current edge · HTTP round trip"
           action={
             <button className="button small" disabled={latency.busy} onClick={() => void latency.run()}>
               <Activity size={13} />
-              {latency.busy ? `${latency.samples.length} / 10` : 'Run test'}
+              {localize(latency.busy ? `${latency.samples.length} / 10` : 'Run test')}
             </button>
           }
         >
           <div className="latency-head">
             <strong>
-              {stats ? stats.average.toFixed(1) : '—'}
-              <small> ms</small>
+              {localize(stats ? stats.average.toFixed(1) : '—')}
+              <small>{localize(' ms')}</small>
             </strong>
-            <Badge>{stats ? 'Average RTT' : 'Not measured'}</Badge>
+            <Badge>{localize(stats ? 'Average RTT' : 'Not measured')}</Badge>
           </div>
           <LatencyChart samples={latency.samples} />
-          {latency.error && <Notice error>{latency.error}</Notice>}
+          {latency.error && <Notice error>{localize(latency.error)}</Notice>}
           <div className="mini-stats">
             <span>
-              MIN <b>{stats ? stats.min.toFixed(1) + ' ms' : '—'}</b>
+              {localize(' MIN ')}
+              <b>{localize(stats ? stats.min.toFixed(1) + ' ms' : '—')}</b>
             </span>
             <span>
-              P95 <b>{stats ? stats.p95.toFixed(1) + ' ms' : '—'}</b>
+              {localize(' P95 ')}
+              <b>{localize(stats ? stats.p95.toFixed(1) + ' ms' : '—')}</b>
             </span>
             <span>
-              JITTER <b>{stats ? stats.jitter.toFixed(1) + ' ms' : '—'}</b>
+              {localize(' JITTER ')}
+              <b>{localize(stats ? stats.jitter.toFixed(1) + ' ms' : '—')}</b>
             </span>
           </div>
         </Card>
         <Card
-          title="Browser environment"
+          title={localize('Browser environment')}
           subtitle="What your browser shares"
           action={<Monitor size={17} className="text-muted" />}
         >
@@ -228,19 +244,21 @@ export default function Overview() {
           />
           <div className="privacy-note">
             <Check size={14} />
-            <span>Collected locally. Never uploaded.</span>
+            <span>{localize('Collected locally. Never uploaded.')}</span>
           </div>
           <Link className="card-link" to="/environment">
-            View browser environment <ArrowRight size={14} />
+            {localize(' View browser environment ')}
+            <ArrowRight size={14} />
           </Link>
         </Card>
       </div>
-      {info?.warnings.length ? <Notice>{info.warnings.join(' · ')}</Notice> : null}
+      {info?.warnings.length ? <Notice>{localize(info.warnings.join(' · '))}</Notice> : null}
       <div className="bottom-note">
         <LockKeyhole size={14} />
-        <span>No tracking scripts. No fabricated results. Every finding has a source.</span>
+        <span>{localize('No tracking scripts. No fabricated results. Every finding has a source.')}</span>
         <Link to="/tools">
-          Explore all tools <ArrowRight size={13} />
+          {localize(' Explore all tools ')}
+          <ArrowRight size={13} />
         </Link>
       </div>
     </>

@@ -1,3 +1,4 @@
+import { localize } from '../config/i18n';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Braces } from 'lucide-react';
 import { navigation, site } from '../config/site';
@@ -7,19 +8,19 @@ export function ToolsPage() {
   return (
     <>
       <PageTitle
-        title="Your network toolkit"
+        title={localize('Your network toolkit')}
         description="Focused diagnostics, clear limitations, and evidence you can inspect."
       />
       <div className="tools-grid">
         {navigation
           .filter((s) => !['Workspace', 'Developer'].includes(s.label))
           .map((s) => (
-            <Card key={s.label} title={s.label}>
+            <Card key={s.label} title={localize(s.label)}>
               {s.items.map(([path, title]) => (
                 <Link className="tool-link" to={path} key={path}>
                   <span>
-                    {title}
-                    <small>{path}</small>
+                    {localize(title)}
+                    <small>{localize(path)}</small>
                   </span>
                   <ArrowUpRight size={16} />
                 </Link>
@@ -50,21 +51,22 @@ export function DeveloperPage() {
     <>
       <PageTitle
         eyebrow="DEVELOPER"
-        title="A transparent API"
+        title={localize('A transparent API')}
         description="Standard JSON. Explicit sources. The same endpoints that power this workspace."
         action={
           <a className="button" href="/openapi.json" target="_blank" rel="noreferrer">
-            <Braces size={15} /> OpenAPI 3.1
+            <Braces size={15} />
+            {localize(' OpenAPI 3.1 ')}
           </a>
         }
       />
       <Notice>
-        Browser requests are same-origin by default. CLI clients can call the endpoints directly. Queries:
-        60/min/IP; active probes: 10/min/IP. Fingerprint, environment, and WebRTC candidates have no upload
-        endpoint.
+        {localize(
+          ' Browser requests are same-origin by default. CLI clients can call the endpoints directly. Queries: 60/min/IP; active probes: 10/min/IP. Fingerprint, environment, and WebRTC candidates have no upload endpoint. ',
+        )}
       </Notice>
       <div className="two-columns">
-        <Card title="Lookup endpoints">
+        <Card title={localize('Lookup endpoints')}>
           <DataList
             data={{
               'GET /api/ip': 'Current client address',
@@ -76,7 +78,7 @@ export function DeveloperPage() {
             }}
           />
         </Card>
-        <Card title="Probe endpoints">
+        <Card title={localize('Probe endpoints')}>
           <DataList
             data={{
               'GET /api/ping': 'Uncached edge echo',
@@ -91,20 +93,21 @@ export function DeveloperPage() {
         </Card>
       </div>
       {examples.map(([language, code]) => (
-        <Card key={language} title={language} action={<CopyButton text={code} />}>
-          <pre>{code}</pre>
+        <Card key={language} title={localize(language)} action={<CopyButton text={code} />}>
+          <pre>{localize(code)}</pre>
         </Card>
       ))}
-      <Card title="Privacy architecture">
+      <Card title={localize('Privacy architecture')}>
         <p>
-          {site.name} does not store browser fingerprints, WebRTC candidates, or query history. Provider
-          lookups disclose the queried IP to the configured provider. IP / ASN / risk provider results may be
-          cached for 24h / 24h / 1h respectively. Rate counters are short-lived. Hosting platforms and
-          third-party providers have their own retention policies.
+          {localize(site.name)}
+          {localize(
+            ' does not store browser fingerprints, WebRTC candidates, or query history. Provider lookups disclose the queried IP to the configured provider. IP / ASN / risk provider results may be cached for 24h / 24h / 1h respectively. Rate counters are short-lived. Hosting platforms and third-party providers have their own retention policies. ',
+          )}
         </p>
         <p>
-          Risk is a local scoring model over provider evidence. A score of zero with partial coverage is not
-          proof of safety. Unsupported tests report limitations, never invented measurements.
+          {localize(
+            ' Risk is a local scoring model over provider evidence. A score of zero with partial coverage is not proof of safety. Unsupported tests report limitations, never invented measurements. ',
+          )}
         </p>
       </Card>
     </>
@@ -115,14 +118,17 @@ export function StatusPage() {
   return (
     <>
       <PageTitle
-        title="System status"
+        title={localize('System status')}
         description="Live capabilities reported by the runtime handling your request."
       />
       {health.isLoading && <Skeleton />}
-      {health.error && <Notice error>{health.error.message}</Notice>}
+      {health.error && <Notice error>{localize(health.error.message)}</Notice>}
       {health.data && (
         <>
-          <Card title={health.data.platform} action={<Badge tone="green">API responding</Badge>}>
+          <Card
+            title={localize(health.data.platform)}
+            action={<Badge tone="green">{localize('API responding')}</Badge>}
+          >
             <DataList
               data={Object.fromEntries(
                 Object.entries(health.data.capabilities).map(([k, v]) => [
@@ -132,7 +138,7 @@ export function StatusPage() {
               )}
             />
           </Card>
-          <Card title="Provider configuration">
+          <Card title={localize('Provider configuration')}>
             <DataList
               data={Object.fromEntries(
                 Object.entries(health.data.providers).map(([k, v]) => [
@@ -141,10 +147,11 @@ export function StatusPage() {
                 ]),
               )}
             />
-            <Notice>{health.data.rateLimit}</Notice>
+            <Notice>{localize(health.data.rateLimit)}</Notice>
             <p className="helper">
-              Configured does not mean the upstream is reachable. Individual tests report real failures and
-              timeouts.
+              {localize(
+                ' Configured does not mean the upstream is reachable. Individual tests report real failures and timeouts. ',
+              )}
             </p>
           </Card>
         </>

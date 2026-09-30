@@ -1,10 +1,13 @@
+import { localize } from '../config/i18n';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 export function LatencyChart({ samples }: { samples: number[] }) {
   return (
     <div
       className="latency-chart"
       role="img"
-      aria-label={samples.length ? 'Latency samples in milliseconds' : 'No latency measurements yet'}
+      aria-label={localize(
+        samples.length ? 'Latency samples in milliseconds' : 'No latency measurements yet',
+      )}
     >
       {samples.length ? (
         <ResponsiveContainer width="100%" height="100%">
@@ -34,7 +37,7 @@ export function LatencyChart({ samples }: { samples: number[] }) {
           <div />
           <div />
           <div />
-          <span>Run a test to measure your connection</span>
+          <span>{localize('Run a test to measure your connection')}</span>
         </div>
       )}
     </div>

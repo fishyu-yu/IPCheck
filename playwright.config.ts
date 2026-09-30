@@ -4,6 +4,14 @@ export default defineConfig({
   fullyParallel: false,
   workers: 1,
   retries: 0,
-  use: { baseURL: 'http://127.0.0.1:5173', channel: 'chrome', headless: true, screenshot: 'only-on-failure' },
+  use: {
+    baseURL: 'http://127.0.0.1:5173',
+    channel: 'chrome',
+    headless: true,
+    screenshot: 'only-on-failure',
+    locale: 'en-US',
+    colorScheme: 'dark',
+  },
+  webServer: { command: 'pnpm dev', url: 'http://127.0.0.1:5173', reuseExistingServer: !process.env.CI },
   reporter: 'list',
 });

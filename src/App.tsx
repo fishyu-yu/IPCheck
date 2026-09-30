@@ -1,3 +1,4 @@
+import { localize } from './config/i18n';
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Route, Routes, Link } from 'react-router-dom';
 import { Shell } from './layouts/Shell';
@@ -50,8 +51,8 @@ export default function App() {
               path="*"
               element={
                 <div className="empty-state">
-                  <h1>Page not found</h1>
-                  <Link to="/">Back to overview</Link>
+                  <h1>{localize('Page not found')}</h1>
+                  <Link to="/">{localize('Back to overview')}</Link>
                 </div>
               }
             />
