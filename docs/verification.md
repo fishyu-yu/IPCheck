@@ -34,3 +34,9 @@
 Cloudflare Worker 已在此前发布到 [线上站点](https://netprobe.yangzhan-ms.workers.dev)。本次更新的发布结果以 GitHub 提交与 Cloudflare 部署记录为准；部署预检本身不会更新线上版本，也不证明 Git 自动部署连接已建立。
 
 未提供付费风险数据源密钥、真实 ICMP / 路由追踪节点或权威 DNS 采集服务器。相关调用协议、数据校验与降级界面已实现，第三方归一化使用独立测试样例验证，不能将这些测试等同于真实服务验收。EdgeOne 适配器未在真实账号完成生产验证。
+
+## 本次发布记录
+
+2026-10-01 已将中文界面、UI 与文档提交 `324ab05` 同步到 GitHub `master`，远程 Git 对象 SHA 与本地一致。Cloudflare 手动发布成功，版本为 `f89c9fe1-7e0e-4b8b-92d7-6814673388cd`。
+
+随后已在 Cloudflare 控制台连接 `fishyu-yu/IPCheck` 的 `master`，构建命令 `pnpm run build:ci`，部署命令 `npx wrangler deploy`，根目录 `/`，关闭非生产分支预览。本次文档提交用于验证该 Git 推送触发链路；最终状态以 Cloudflare 构建记录为准。

@@ -1,6 +1,6 @@
 # IPCheck · NetProbe 网络诊断
 
-一个部署在边缘网络的 IP、网络连通性与浏览器隐私诊断平台。界面品牌为 **NetProbe**，代码保存在 **IPCheck** 仓库，保留原项目提交历史与 MIT 许可证。
+一个部署在边缘网络的 IP、网络连通性与浏览器隐私诊断平台。界面品牌为 **NetProbe**，代码保存在 **IPCheck** 仓库，保留原项目提交历史，许可证以仓库 LICENSE 为准。
 
 [在线使用](https://netprobe.yangzhan-ms.workers.dev) · [GitHub 仓库](https://github.com/fishyu-yu/IPCheck) · [接口文档](https://netprobe.yangzhan-ms.workers.dev/developers)
 
@@ -64,7 +64,7 @@ pnpm dev
 
 ## Cloudflare 部署与 GitHub 自动更新
 
-当前 Worker 名称为 `netprobe`，生产分支为 `master`。自动部署通过 Cloudflare Workers Builds 的 Git 集成配置，**仅推送代码或提交 Wrangler 文件本身不会建立 Git 连接**。
+当前 Worker 名称为 `netprobe`，已通过 Cloudflare Workers Builds 连接 `fishyu-yu/IPCheck`，生产分支为 `master`。向该分支推送会自动检查、构建并部署。其他账号复用本项目时，仍需在自己的 Cloudflare 控制台建立 Git 连接。
 
 在 Cloudflare 的 **Workers 和 Pages → netprobe → 设置 → 构建** 中连接仓库，使用以下配置：
 
@@ -192,4 +192,4 @@ API 统一返回 `success/data/meta` 或 `success/error`。能力不可用可能
 
 ## 许可证
 
-项目采用 [MIT 许可证](LICENSE)。
+项目当前采用 [GNU AGPL v3 许可证](LICENSE)。
