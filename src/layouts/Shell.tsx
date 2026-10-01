@@ -1,5 +1,5 @@
 import { localize, locale } from '../config/i18n';
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   Activity,
@@ -17,7 +17,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { navigation, site } from '../config/site';
-import { useHealth } from '../hooks/queries';
+import { useVisibleNavigation } from '../hooks/useVisibleNavigation';
+import { Skeleton } from '../components/ui';
 const icons: Record<string, LucideIcon> = {
   asn: Network,
   ping: Activity,
@@ -31,10 +32,13 @@ export function Shell() {
   const [open, setOpen] = useState(false);
   const menuRoot = useRef<HTMLElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
-  const primaryItems = navigation
+  const primaryRoot = useRef<HTMLDivElement>(null);
+  const [indicator, setIndicator] = useState({ left: 0, top: 0, width: 0, height: 0, visible: false });
+  const visibleNavigation = useVisibleNavigation();
+  const primaryItems = visibleNavigation
     .flatMap((section) => section.items)
     .filter((item) => ['/', '/ip', '/risk', '/dns-lookup', '/latency'].includes(item[0]));
-  const moreSections = navigation
+  const moreSections = visibleNavigation
     .filter((section) => !['Workspace', 'Developer'].includes(section.label))
     .map((section) => ({
       ...section,
@@ -44,6 +48,33 @@ export function Shell() {
   const moreActive = moreSections.some((section) =>
     section.items.some((item) => item[0] === location.pathname),
   );
+  const primaryRoutes = primaryItems.map((item) => item[0]).join(',');
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [location.pathname]);
+  useLayoutEffect(() => {
+    const root = primaryRoot.current;
+    if (!root) return;
+    const measure = () => {
+      const active = root.querySelector<HTMLAnchorElement>('a[aria-current="page"]');
+      setIndicator((previous) =>
+        active
+          ? {
+              left: active.offsetLeft,
+              top: active.offsetTop,
+              width: active.offsetWidth,
+              height: active.offsetHeight,
+              visible: true,
+            }
+          : { ...previous, visible: false },
+      );
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    root.querySelectorAll('a').forEach((link) => observer.observe(link));
+    return () => observer.disconnect();
+  }, [location.pathname, primaryRoutes]);
   useEffect(() => {
     if (!open) return;
     const closeOutside = (event: PointerEvent) => {
@@ -72,7 +103,6 @@ export function Shell() {
       return 'light';
     }
   });
-  const health = useHealth();
   const title = navigation.flatMap((s) => s.items).find((i) => i[0] === location.pathname)?.[1] || 'Tool';
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -120,15 +150,8 @@ export function Shell() {
                 <Terminal size={22} />
               </span>
               {site.name}
-              <span className="brand-cursor" aria-hidden="true">
-                _
-              </span>
             </NavLink>
             <div className="top-actions">
-              <span className="edge-status">
-                <i className={health.isError ? 'offline' : ''} />
-                {localize(health.data?.platform || 'Connecting')}
-              </span>
               <span className="locale-label" title={localize('Language follows your browser')}>
                 {locale === 'zh' ? '简体中文' : 'English'}
               </span>
@@ -142,7 +165,17 @@ export function Shell() {
             </div>
           </div>
           <nav className="horizontal-nav" aria-label={localize('Main navigation')} ref={menuRoot}>
-            <div className="primary-links">
+            <div className="primary-links" ref={primaryRoot}>
+              <span
+                className="nav-indicator"
+                aria-hidden="true"
+                style={{
+                  transform: `translate(${indicator.left}px, ${indicator.top}px)`,
+                  width: indicator.width,
+                  height: indicator.height,
+                  opacity: indicator.visible ? 1 : 0,
+                }}
+              />
               {primaryItems.map(([url, label]) => (
                 <NavLink
                   end
@@ -164,7 +197,7 @@ export function Shell() {
             >
               {localize('More tools')} <ChevronDown size={15} />
             </button>
-            <div className="more-panel" id="more-tools" hidden={!open}>
+            <div className="more-panel" id="more-tools" data-open={open} aria-hidden={!open} inert={!open}>
               <div className="more-groups">
                 {moreSections.map((section) => (
                   <div className="more-section" key={section.label}>
@@ -194,7 +227,11 @@ export function Shell() {
           </nav>
         </header>
         <main id="main-content">
-          <Outlet />
+          <div className="route-view" key={location.pathname}>
+            <Suspense fallback={<Skeleton lines={4} />}>
+              <Outlet />
+            </Suspense>
+          </div>
         </main>
         <footer className="site-footer">
           <div className="footer-identity">

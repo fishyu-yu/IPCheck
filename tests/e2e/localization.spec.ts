@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 test.describe('Chinese interface', () => {
   test.use({ locale: 'zh-CN', colorScheme: 'light' });
   test('all pages, dynamic states, accessible labels and mobile navigation use Chinese', async ({ page }) => {

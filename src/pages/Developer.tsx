@@ -1,10 +1,12 @@
 import { localize } from '../config/i18n';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Braces } from 'lucide-react';
-import { navigation, site } from '../config/site';
+import { site } from '../config/site';
+import { useVisibleNavigation } from '../hooks/useVisibleNavigation';
 import { useHealth } from '../hooks/queries';
 import { Badge, Card, CopyButton, DataList, Notice, PageTitle, Skeleton } from '../components/ui';
 export function ToolsPage() {
+  const navigation = useVisibleNavigation();
   return (
     <>
       <PageTitle
@@ -18,10 +20,7 @@ export function ToolsPage() {
             <Card key={s.label} title={localize(s.label)}>
               {s.items.map(([path, title]) => (
                 <Link className="tool-link" to={path} key={path}>
-                  <span>
-                    {localize(title)}
-                    <small>{localize(path)}</small>
-                  </span>
+                  <span>{localize(title)}</span>
                   <ArrowUpRight size={16} />
                 </Link>
               ))}

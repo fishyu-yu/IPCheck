@@ -1,19 +1,7 @@
 import { localize, countryName } from '../config/i18n';
-import {
-  Activity,
-  ArrowRight,
-  ArrowUpRight,
-  Check,
-  Globe2,
-  LockKeyhole,
-  MapPin,
-  Monitor,
-  Network,
-  RefreshCw,
-  ShieldCheck,
-} from 'lucide-react';
+import { Activity, ArrowRight, Check, Globe2, MapPin, Monitor, Network, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useCurrentIp, useRisk } from '../hooks/queries';
+import { useCurrentIp, useHealth, useRisk } from '../hooks/queries';
 import {
   Badge,
   Card,
@@ -29,9 +17,11 @@ import { LatencyChart } from '../components/LatencyChart';
 import { useLatency } from '../hooks/useLatency';
 import { statistics } from '../lib/statistics';
 export default function Overview() {
+  const health = useHealth();
+  const showRisk = health.data?.providers.risk === true;
   const query = useCurrentIp(),
     info = query.data,
-    risk = useRisk(info?.ip);
+    risk = useRisk(showRisk ? info?.ip : undefined);
   const latency = useLatency();
   const stats = statistics(latency.samples);
   const location = [
@@ -70,102 +60,33 @@ export default function Overview() {
               {info?.ip && <CopyButton text={info.ip} />}
             </div>
           )}
-          <div className="ip-meta">
-            <span>
-              <MapPin size={14} />
-              {localize(location || 'Location unknown')}
-            </span>
-            <span>
-              <Network size={14} />
-              {localize(info?.asn ? 'AS' + info.asn : 'ASN unknown')}
-            </span>
-            <span>
-              <Globe2 size={14} />
-              {localize(info?.organization || 'Network unknown')}
-            </span>
-          </div>
-          <div className="hero-source">
-            <DetectionBadge type={info?.detection || 'Estimated / Unsupported'} />
-            <span>
-              {localize(info?.sources.join(' · ') || 'Connect through a supported edge deployment')}
-            </span>
-          </div>
-        </div>
-        <div className="hero-art" aria-hidden="true">
-          <svg viewBox="0 0 260 190">
-            <defs>
-              <pattern id="grid" width="15" height="15" patternUnits="userSpaceOnUse">
-                <circle cx="1" cy="1" r=".8" fill="currentColor" />
-              </pattern>
-            </defs>
-            <rect width="260" height="190" fill="url(#grid)" opacity=".2" />
-            <g transform="translate(146 95)" fill="none" stroke="currentColor">
-              <circle r="67" />
-              <ellipse rx="33" ry="67" />
-              <ellipse rx="56" ry="67" />
-              <ellipse rx="67" ry="25" />
-              <path d="M-67 0H67M0-67V67" />
-              <circle r="84" strokeDasharray="2 9" opacity=".3" />
-            </g>
-            <circle cx="174" cy="63" r="5" className="globe-point" />
-            <path d="M174 63L211 28H253" fill="none" stroke="var(--accent)" strokeDasharray="3 3" />
-          </svg>
-          <span>{localize('CONNECTED WORLD / 001')}</span>
+          {info?.ip && (
+            <div className="ip-meta">
+              <span>
+                <MapPin size={14} />
+                {localize(location || 'Location unknown')}
+              </span>
+              <span>
+                <Network size={14} />
+                {localize(info?.asn ? 'AS' + info.asn : 'ASN unknown')}
+              </span>
+              <span>
+                <Globe2 size={14} />
+                {localize(info?.organization || 'Network unknown')}
+              </span>
+            </div>
+          )}
+          {info?.ip && (
+            <div className="hero-source">
+              <DetectionBadge type={info?.detection || 'Estimated / Unsupported'} />
+              <span>
+                {localize(info?.sources.join(' · ') || 'Connect through a supported edge deployment')}
+              </span>
+            </div>
+          )}
         </div>
       </section>
       {query.error && <Notice error>{localize(query.error.message)}</Notice>}
-      <div className="summary-grid">
-        {[
-          {
-            icon: MapPin,
-            label: 'Location',
-            value: location || 'Unknown',
-            detail: info?.timezone || 'Geolocation is approximate',
-            url: '/ip',
-            tag: 'GEO',
-          },
-          {
-            icon: Network,
-            label: 'Network',
-            value: info?.organization || 'Unknown',
-            detail: info?.asn ? 'AS' + info.asn : 'Waiting for network metadata',
-            url: '/asn',
-            tag: 'ASN',
-          },
-          {
-            icon: ShieldCheck,
-            label: 'Risk level',
-            value: risk.data?.level || 'Not checked',
-            detail:
-              risk.data?.score !== null && risk.data?.score !== undefined
-                ? `${risk.data.score} / 100 · ${risk.data.checked} signals checked`
-                : 'Provider evidence required',
-            url: '/risk',
-            tag: 'RISK',
-          },
-          {
-            icon: LockKeyhole,
-            label: 'Privacy',
-            value: 'Local-first',
-            detail: 'Fingerprint stays in your browser',
-            url: '/fingerprint',
-            tag: 'BROWSER',
-          },
-        ].map((item) => (
-          <Link className="summary-card" to={item.url} key={item.label}>
-            <div className="summary-top">
-              <span>
-                <item.icon size={16} />
-                {localize(item.label)}
-              </span>
-              <ArrowUpRight size={14} />
-            </div>
-            <strong>{localize(item.value)}</strong>
-            <p>{localize(item.detail)}</p>
-            <span className="summary-tag">{localize(item.tag)}</span>
-          </Link>
-        ))}
-      </div>
       <div className="overview-grid">
         <Card
           title={localize('Network information')}
@@ -193,7 +114,7 @@ export default function Overview() {
             <ArrowRight size={14} />
           </Link>
         </Card>
-        <RiskPanel compact data={risk.data} />
+        {showRisk && <RiskPanel compact data={risk.data} />}
         <Card
           title={localize('Connection latency')}
           subtitle="Your browser → current edge · HTTP round trip"
@@ -211,7 +132,11 @@ export default function Overview() {
             </strong>
             <Badge>{localize(stats ? 'Average RTT' : 'Not measured')}</Badge>
           </div>
-          <LatencyChart samples={latency.samples} />
+          {latency.samples.length > 0 ? (
+            <LatencyChart samples={latency.samples} />
+          ) : (
+            <p className="helper">{localize('Run a test to measure your connection')}</p>
+          )}
           {latency.error && <Notice error>{localize(latency.error)}</Notice>}
           <div className="mini-stats">
             <span>
@@ -236,9 +161,7 @@ export default function Overview() {
           <DataList
             data={{
               Platform: navigator.platform,
-              Language: navigator.language,
               Timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-              Screen: `${screen.width} × ${screen.height}`,
               'CPU threads': navigator.hardwareConcurrency || 'Unsupported by browser',
             }}
           />
@@ -253,14 +176,6 @@ export default function Overview() {
         </Card>
       </div>
       {info?.warnings.length ? <Notice>{localize(info.warnings.join(' · '))}</Notice> : null}
-      <div className="bottom-note">
-        <LockKeyhole size={14} />
-        <span>{localize('No tracking scripts. No fabricated results. Every finding has a source.')}</span>
-        <Link to="/tools">
-          {localize(' Explore all tools ')}
-          <ArrowRight size={13} />
-        </Link>
-      </div>
     </>
   );
 }

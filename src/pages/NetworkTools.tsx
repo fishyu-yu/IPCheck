@@ -4,6 +4,7 @@ import { Play, Square } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { useHealth } from '../hooks/queries';
+import { isToolAvailable } from '../hooks/useVisibleNavigation';
 import { useLatency } from '../hooks/useLatency';
 import { statistics } from '../lib/statistics';
 import type { DNSResult, PingResult } from '../types';
@@ -61,20 +62,21 @@ export function LatencyPage() {
 export function PingPage({ tcp = false }: { tcp?: boolean }) {
   const [host, setHost] = useState(''),
     [port, setPort] = useState(443),
-    [mode, setMode] = useState<'http' | 'tcp' | 'icmp'>(tcp ? 'tcp' : 'http'),
+    [requestedMode, setMode] = useState<'http' | 'tcp' | 'icmp'>(tcp ? 'tcp' : 'http'),
     [protocol, setProtocol] = useState('http'),
     [busy, setBusy] = useState(false),
     [results, setResults] = useState<PingResult[]>([]),
     [error, setError] = useState('');
   const health = useHealth();
+  const modes = (['http', 'tcp', 'icmp'] as const).filter((mode) =>
+    mode === 'icmp'
+      ? health.data?.capabilities.icmp === true
+      : isToolAvailable(mode === 'tcp' ? 'tcp' : 'ping', health.data),
+  );
+  const mode = modes.includes(requestedMode) ? requestedMode : modes[0] || requestedMode;
   const controller = useRef<AbortController | null>(null);
   useEffect(() => () => controller.current?.abort(), []);
-  const supported =
-    mode === 'tcp'
-      ? health.data?.capabilities.tcpSocket || health.data?.providers.remoteProbe
-      : mode === 'icmp'
-        ? health.data?.capabilities.icmp
-        : health.data?.capabilities.httpProbe;
+  const supported = modes.includes(mode);
   const run = async (count: number) => {
     controller.current?.abort();
     const ctrl = new AbortController();
@@ -143,9 +145,13 @@ export function PingPage({ tcp = false }: { tcp?: boolean }) {
           <label>
             {localize(' Mode ')}
             <select value={mode} onChange={(e) => setMode(e.target.value as typeof mode)} disabled={busy}>
-              <option value="http">{localize('HTTP HEAD')}</option>
-              <option value="tcp">{localize('TCP connection')}</option>
-              <option value="icmp">{localize('ICMP echo')}</option>
+              {(health.data?.capabilities.httpProbe || health.data?.capabilities.icmp) && (
+                <option value="http">{localize('HTTP HEAD')}</option>
+              )}
+              {(health.data?.capabilities.tcpSocket || health.data?.capabilities.icmp) && (
+                <option value="tcp">{localize('TCP connection')}</option>
+              )}
+              {health.data?.capabilities.icmp && <option value="icmp">{localize('ICMP echo')}</option>}
             </select>
           </label>
           {mode === 'tcp' ? (

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 test('overview, themes, tools and mobile layout are usable', async ({ page }) => {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
@@ -8,7 +8,7 @@ test('overview, themes, tools and mobile layout are usable', async ({ page }) =>
   await expect(page.getByText('Not available locally')).toBeVisible();
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
   await expect(page.locator('.sidebar')).toHaveCount(0);
-  await expect(nav.getByRole('link')).toHaveCount(5);
+  await expect(nav.getByRole('link')).toHaveCount(4);
   const positions = await nav
     .getByRole('link')
     .evaluateAll((links) => links.map((link) => link.getBoundingClientRect().top));
@@ -83,15 +83,15 @@ test('fingerprint is local and does not make network requests', async ({ page })
   await expect(page.locator('.hash-output code')).toHaveText(/^[a-f0-9]{64}$/);
   expect(requests).toEqual([]);
 });
-test('latency collects ten real samples and unsupported features stay unavailable', async ({ page }) => {
+test('latency collects ten real samples and unsupported features stay hidden', async ({ page }) => {
   await page.goto('/latency');
   await page.getByRole('button', { name: 'Measure latency' }).click();
   await expect(page.getByText('10 / 10 requests')).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole('button', { name: 'Measure latency' })).toBeEnabled();
   await expect(page.locator('.stats-grid strong').first()).not.toContainText('—');
   await page.goto('/tcping');
-  await expect(page.getByText('TCP Ping unavailable on this edge provider')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Single test' })).toBeDisabled();
+  await expect(page).toHaveURL(/\/tools$/);
+  await expect(page.getByRole('link', { name: 'TCP Ping', exact: true })).toHaveCount(0);
 });
 test('every tool route renders without a runtime error', async ({ page }) => {
   const errors: string[] = [];
