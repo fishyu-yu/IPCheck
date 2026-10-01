@@ -44,3 +44,11 @@ Cloudflare Worker 已发布到 [线上站点](https://netprobe.yangzhan-ms.worke
 推送 `297ea7a` 后自动触发构建 `5a3427df-cc02-4f00-ae6e-eb627a89edca`，初始化、克隆、依赖安装、构建和部署均成功，总耗时 1 分 9 秒；构建环境为 Node.js 24.21.0 / pnpm 10.11.1。对应部署版本 `f3132915-c438-4167-b641-5d2a83989987` 已接收 100% 生产流量。成功截图保存在本地 `artifacts/cloudflare-auto-deploy.jpg`。可在 [GitHub 构建检查](https://github.com/fishyu-yu/IPCheck/runs/110077162087) 或 Cloudflare 控制台核对。
 
 维护者的云端许可证提交 `bbb8961` 已合并保留；README 按当前 LICENSE 更新为 GNU AGPL v3，网站页脚提供源码入口。
+
+## beta 分支部署配置
+
+2026-10-01 新建独立 Worker `netprobe-beta`，绑定 [测试站点](https://ipbeta.f1shyu.com)。Cloudflare Workers Builds 已连接 `fishyu-yu/IPCheck`，该 Worker 的生产分支为 `beta`，根目录 `/`，构建命令 `pnpm run build:ci:beta`，部署命令 `npx wrangler deploy --config wrangler.beta.jsonc`，关闭非生产分支预览。
+
+部署配置提交为 `405b949`。本地 beta CI 通过 ESLint、83 项测试、TypeScript 与生产构建；Wrangler beta 部署预检通过。首次手动发布版本为 `7354614f-0f37-4ce5-b6c6-bc94e50bcdc2`。自定义域名 HTTPS 主页和 `/api/health` 均返回 200，健康状态为 `operational`，主页规范链接指向测试域名。
+
+后续推送由 Cloudflare 自动构建，验收时应核对构建记录中的 `beta` 提交 SHA 和成功部署状态。beta 前端及 SEO 使用 `.env.beta`，运行时与路由使用 `wrangler.beta.jsonc`，限流命名空间为 `2001` / `2002`。
