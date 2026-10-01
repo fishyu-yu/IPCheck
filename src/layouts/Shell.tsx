@@ -125,9 +125,12 @@ export function Shell() {
       <aside className={'sidebar ' + (open ? 'open' : '')} inert={mobile && !open}>
         <NavLink to="/" className="brand" onClick={() => setOpen(false)}>
           <span className="brand-mark">
-            <Network size={22} />
+            <Terminal size={22} />
           </span>
           {localize(site.name)}
+          <span className="brand-cursor" aria-hidden="true">
+            _
+          </span>
         </NavLink>
         <div className="workspace-selector">
           <span className="workspace-icon">
@@ -208,12 +211,21 @@ export function Shell() {
           <Outlet />
         </main>
         <footer>
-          <span>
-            © {localize(new Date().getFullYear())} {localize(site.name)}{' '}
-            <span className="footer-separator">/</span>
-            {localize(' ')}
-            {localize(site.tagline)}
-          </span>
+          <div className="footer-identity">
+            <span>
+              © {localize(new Date().getFullYear())} {localize(site.name)}{' '}
+              <span className="footer-separator">/</span>
+              {localize(' ')}
+              {localize(site.tagline)}
+            </span>
+            <p className="design-credit">
+              {localize('UI design reference:')}{' '}
+              <a href="https://whois.f1shyu.com" target="_blank" rel="noopener noreferrer">
+                whois.f1shyu.com
+              </a>
+              {localize('. Referenced brands and works belong to their respective copyright holders.')}
+            </p>
+          </div>
           <a href="https://github.com/fishyu-yu/IPCheck" target="_blank" rel="noopener noreferrer">
             <Terminal size={13} />
             {localize('Source code')} · AGPL v3

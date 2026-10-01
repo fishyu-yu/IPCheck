@@ -2,6 +2,8 @@
 export const zh: Record<string, string> = Object.fromEntries(
   `
 Unknown|未知
+UI design reference:|界面设计参考：
+. Referenced brands and works belong to their respective copyright holders.|。所参考的品牌与作品版权归各自权利人所有。
 Low Risk|低风险
 Moderate Risk|中等风险
 High Risk|高风险
