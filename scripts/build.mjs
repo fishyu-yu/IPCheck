@@ -2,7 +2,7 @@ import { build } from 'esbuild';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { loadEnv } from 'vite';
-const buildEnv = loadEnv('production', process.cwd(), '');
+const buildEnv = loadEnv(process.argv[2] || 'production', process.cwd(), '');
 const siteUrl = process.env.VITE_SITE_URL || buildEnv.VITE_SITE_URL || 'https://your-domain.example';
 const common = {
   bundle: true,

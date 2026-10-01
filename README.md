@@ -79,6 +79,23 @@ pnpm dev
 
 连接成功后，向 `master` 推送提交会触发 Cloudflare 拉取代码、安装依赖、检查、构建与部署。构建失败时不会执行部署命令。构建记录中的提交 SHA 应与 GitHub 最新提交一致；出现失败时查看该次构建日志。配置依据见 [Cloudflare Workers Builds 官方文档](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)。
 
+### beta 分支与测试域名
+
+`beta` 使用独立 Worker `netprobe-beta`，测试地址为 [ipbeta.f1shyu.com](https://ipbeta.f1shyu.com)。在该 Worker 的 **设置 → 构建** 中连接同一仓库，配置如下：
+
+| 设置                       | 值                                                 |
+| -------------------------- | -------------------------------------------------- |
+| GitHub 仓库                | `fishyu-yu/IPCheck`                                |
+| 生产分支（该 beta Worker） | `beta`                                             |
+| 根目录                     | `/`                                                |
+| 构建命令                   | `pnpm run build:ci:beta`                           |
+| 部署命令                   | `npx wrangler deploy --config wrangler.beta.jsonc` |
+| 非生产分支预览             | 关闭                                               |
+
+向 `beta` 推送会自动检查、构建并更新测试站点。`.env.beta` 提供前端、OpenAPI、规范链接与站点地图的测试域名；`wrangler.beta.jsonc` 保存独立 Worker、域名路由、运行时地址与限流绑定。`master` 继续使用原生产配置。beta 所需的可选服务密钥在 `netprobe-beta` 中单独配置。
+
+首次手动部署或故障排查可执行 `pnpm deploy:cloudflare:beta`。检查自动更新时，对照该 Worker 的最新构建提交 SHA 与 GitHub `beta` 提交。
+
 首次手动部署或故障排查：
 
 ```bash
