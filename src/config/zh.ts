@@ -2,6 +2,8 @@
 export const zh: Record<string, string> = Object.fromEntries(
   `
 Unknown|未知
+More tools|更多工具
+Query an IP address for a PTR record, or look up a domain using DNS-over-HTTPS.|选择 PTR 查询 IP 的反向解析记录，或通过 DNS-over-HTTPS 查询域名。
 UI design reference:|界面设计参考：
 . Referenced brands and works belong to their respective copyright holders.|。所参考的品牌与作品版权归各自权利人所有。
 Low Risk|低风险

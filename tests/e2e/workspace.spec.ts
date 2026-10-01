@@ -6,21 +6,72 @@ test('overview, themes, tools and mobile layout are usable', async ({ page }) =>
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'Your network, in focus.' })).toBeVisible();
   await expect(page.getByText('Not available locally')).toBeVisible();
-  await page.screenshot({ path: 'artifacts/overview-desktop.png', fullPage: true });
+  const nav = page.getByRole('navigation', { name: 'Main navigation' });
+  await expect(page.locator('.sidebar')).toHaveCount(0);
+  await expect(nav.getByRole('link')).toHaveCount(5);
+  const positions = await nav
+    .getByRole('link')
+    .evaluateAll((links) => links.map((link) => link.getBoundingClientRect().top));
+  expect(Math.max(...positions) - Math.min(...positions)).toBeLessThan(2);
+  await nav.getByRole('button', { name: 'More tools' }).click();
+  await expect(nav.getByRole('link', { name: 'Environment', exact: true })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(nav.getByRole('button', { name: 'More tools' })).toBeFocused();
+  await expect(page.locator('#more-tools')).toBeHidden();
+  await nav.getByRole('button', { name: 'More tools' }).click();
+  await page.locator('.footer-identity').click();
+  await expect(page.locator('#more-tools')).toBeHidden();
+  await expect(page.getByRole('link', { name: 'whois.f1shyu.com' })).toBeVisible();
+  await page.screenshot({ path: 'artifacts/overview-desktop.png', fullPage: true, animations: 'disabled' });
   await page.getByRole('button', { name: 'Toggle color theme' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
-  await page.screenshot({ path: 'artifacts/overview-light.png', fullPage: true });
+  await page.screenshot({ path: 'artifacts/overview-light.png', fullPage: true, animations: 'disabled' });
   await page.getByRole('button', { name: 'Toggle color theme' }).click();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByRole('button', { name: 'Open menu' }).click();
+  await page.getByRole('button', { name: 'More tools' }).click();
   await page.getByRole('navigation').getByRole('link', { name: 'Environment', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Browser environment', exact: true })).toBeVisible();
-  await page.screenshot({ path: 'artifacts/environment-mobile.png', fullPage: true });
+  await page.screenshot({ path: 'artifacts/environment-mobile.png', fullPage: true, animations: 'disabled' });
   await page.goto('/');
   await expect(page.getByText('Not available locally')).toBeVisible();
-  await page.screenshot({ path: 'artifacts/overview-mobile.png', fullPage: true });
+  await page.screenshot({ path: 'artifacts/overview-mobile.png', fullPage: true, animations: 'disabled' });
   expect(errors).toEqual([]);
+});
+test('retired pages lead to core tools and reverse DNS is part of DNS lookup', async ({ page }) => {
+  for (const [oldRoute, destination] of [
+    ['/global', '/ping'],
+    ['/trace', '/ping'],
+    ['/dns', '/webrtc'],
+  ]) {
+    await page.goto(oldRoute);
+    await expect(page).toHaveURL(new RegExp(destination + '$'));
+    await expect(page.locator('main h1')).toBeVisible();
+  }
+  await page.goto('/dns-lookup');
+  await page.goto('/reverse');
+  await expect(page).toHaveURL(/\/dns-lookup\?type=PTR$/);
+  await expect(page.getByLabel('Record type')).toHaveValue('PTR');
+  await page.route('**/api/reverse?ip=8.8.8.8', (route) =>
+    route.fulfill({
+      json: {
+        success: true,
+        data: {
+          name: '8.8.8.8',
+          type: 'PTR',
+          status: 0,
+          source: 'test-resolver',
+          answers: [{ name: '8.8.8.8.in-addr.arpa', type: 12, TTL: 300, data: 'dns.google' }],
+        },
+      },
+    }),
+  );
+  await page.getByLabel('IP address', { exact: true }).fill('8.8.8.8');
+  await page.getByRole('button', { name: 'Query DNS' }).click();
+  await expect(page.getByRole('cell', { name: 'dns.google' })).toBeVisible();
+  await page.getByLabel('Record type').selectOption('AAAA');
+  await expect(page.getByLabel('Domain', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('Record type')).toHaveValue('AAAA');
 });
 test('fingerprint is local and does not make network requests', async ({ page }) => {
   await page.goto('/fingerprint');
@@ -41,9 +92,6 @@ test('latency collects ten real samples and unsupported features stay unavailabl
   await page.goto('/tcping');
   await expect(page.getByText('TCP Ping unavailable on this edge provider')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Single test' })).toBeDisabled();
-  await page.goto('/dns');
-  await expect(page.getByText('DNS Leak advanced test requires DNS collector configuration.')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Start DNS leak test' })).toBeDisabled();
 });
 test('every tool route renders without a runtime error', async ({ page }) => {
   const errors: string[] = [];
@@ -55,14 +103,10 @@ test('every tool route renders without a runtime error', async ({ page }) => {
     '/ping',
     '/tcping',
     '/http-ping',
-    '/global',
-    '/trace',
     '/dns-lookup',
-    '/reverse',
     '/environment',
     '/fingerprint',
     '/webrtc',
-    '/dns',
     '/developers',
     '/status',
     '/tools',

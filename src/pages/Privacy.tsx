@@ -3,9 +3,9 @@ import { useEffect, useRef, useState } from 'react';
 import { LockKeyhole } from 'lucide-react';
 import { browserEnvironment, environmentHash, fingerprintEnvironment } from '../services/browser';
 import { testWebRtc, type RtcResult } from '../services/webrtc';
-import { api } from '../services/api';
-import { useCurrentIp, useHealth } from '../hooks/queries';
-import type { DnsSession } from '../types';
+
+import { useCurrentIp } from '../hooks/queries';
+
 import { Badge, Card, CopyButton, DataList, Empty, Notice, PageTitle, RunButton } from '../components/ui';
 export function EnvironmentPage() {
   const [data] = useState(browserEnvironment);
@@ -206,127 +206,6 @@ export function WebRtcPage() {
           <Empty
             title={localize(data ? 'No candidates observed' : 'No test performed')}
             description="Missing or hidden candidates cannot be interpreted as No Leak."
-          />
-        )}
-      </Card>
-    </>
-  );
-}
-export function DnsLeakPage() {
-  const health = useHealth(),
-    [data, setData] = useState<DnsSession>(),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState('');
-  const ctrl = useRef<AbortController | null>(null);
-  useEffect(() => () => ctrl.current?.abort(), []);
-  const run = async () => {
-    const c = new AbortController();
-    ctrl.current = c;
-    setBusy(true);
-    setError('');
-    setData(undefined);
-    try {
-      const session = await api<DnsSession>('/api/dns-leak', {}, c.signal);
-      setData(session);
-      if (!session.supported || !session.hostname) return;
-      await fetch(`https://${session.hostname}/probe`, {
-        mode: 'no-cors',
-        cache: 'no-store',
-        credentials: 'omit',
-        referrerPolicy: 'no-referrer',
-        signal: AbortSignal.any([c.signal, AbortSignal.timeout(5000)]),
-      }).catch(() => {});
-      for (let i = 0; i < 5 && !c.signal.aborted; i++) {
-        await new Promise((r) => setTimeout(r, 2000));
-        if (c.signal.aborted) break;
-        const result = await api<DnsSession>(
-          '/api/dns-leak/results',
-          { id: session.id, token: session.token },
-          c.signal,
-        );
-        setData(result);
-        if (result.complete) break;
-      }
-    } catch (e) {
-      if (!c.signal.aborted) setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <>
-      <PageTitle
-        eyebrow="PRIVACY"
-        title={localize('DNS leak test')}
-        description="Real resolver observation requires an authoritative DNS collector."
-      />
-      <Card
-        title={localize('Authoritative resolver test')}
-        action={
-          <Badge>
-            {localize(health.data?.capabilities.dnsCollector ? 'Collector configured' : 'Not configured')}
-          </Badge>
-        }
-      >
-        <Notice>
-          {localize(
-            health.data?.capabilities.dnsCollector
-              ? 'Starting this test causes a unique random subdomain to resolve. The configured collector temporarily sees recursive resolver addresses.'
-              : 'DNS Leak advanced test requires DNS collector configuration.',
-          )}
-        </Notice>
-        <ol className="steps">
-          <li>{localize('Create a random UUID under your delegated test domain.')}</li>
-          <li>{localize('Request that hostname from this browser.')}</li>
-          <li>{localize('Collect resolver source IPs at the authoritative DNS server.')}</li>
-          <li>{localize('Read authenticated, short-lived results for this session.')}</li>
-        </ol>
-        <RunButton busy={busy} disabled={!health.data?.capabilities.dnsCollector} onClick={() => void run()}>
-          {localize(' Start DNS leak test ')}
-        </RunButton>
-        {busy && (
-          <button className="button" onClick={() => ctrl.current?.abort()}>
-            {localize(' Cancel ')}
-          </button>
-        )}
-        {error && <Notice error>{localize(error)}</Notice>}
-        {data && (
-          <Notice>
-            {localize(
-              data.message ||
-                `${data.complete ? 'Collector complete' : 'Partial / awaiting collector'} · ${data.resolvers?.length ?? 0} resolvers observed. Empty results do not prove absence of a leak.`,
-            )}
-          </Notice>
-        )}
-      </Card>
-      <Card title={localize('Observed resolvers')}>
-        {data?.resolvers?.length ? (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{localize('Resolver IP')}</th>
-                  <th>{localize('ASN')}</th>
-                  <th>{localize('Country')}</th>
-                  <th>{localize('Organization')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.resolvers.map((r) => (
-                  <tr key={r.ip}>
-                    <td>{localize(r.ip)}</td>
-                    <td>{localize(r.asn || 'Unknown')}</td>
-                    <td>{localize(r.country || 'Unknown')}</td>
-                    <td>{localize(r.organization || 'Unknown')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <Empty
-            title={localize('Unable to determine')}
-            description="A regular DNS-over-HTTPS lookup does not reveal which recursive resolver your browser used."
           />
         )}
       </Card>

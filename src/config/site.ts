@@ -34,10 +34,7 @@ export const navigation = [
     items: [
       ['/ping', 'Ping', 'ping'],
       ['/tcping', 'TCP Ping', 'tcp'],
-      ['/global', 'Global Ping', 'global'],
-      ['/trace', 'Traceroute', 'trace'],
       ['/dns-lookup', 'DNS Lookup', 'dns'],
-      ['/reverse', 'Reverse DNS', 'reverse'],
       ['/latency', 'Latency Test', 'latency'],
     ],
   },
@@ -47,7 +44,6 @@ export const navigation = [
       ['/environment', 'Environment', 'environment'],
       ['/fingerprint', 'Fingerprint', 'fingerprint'],
       ['/webrtc', 'WebRTC Leak', 'webrtc'],
-      ['/dns', 'DNS Leak', 'dnsleak'],
     ],
   },
   {

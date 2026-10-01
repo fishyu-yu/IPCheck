@@ -1,12 +1,13 @@
 import { localize } from '../config/i18n';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Play, Square } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../services/api';
 import { useHealth } from '../hooks/queries';
 import { useLatency } from '../hooks/useLatency';
 import { statistics } from '../lib/statistics';
-import type { DNSResult, PingResult, ProbeNode, TraceResult } from '../types';
-import { Badge, Card, DataList, Empty, Notice, PageTitle, RunButton } from '../components/ui';
+import type { DNSResult, PingResult } from '../types';
+import { Badge, Card, Empty, Notice, PageTitle, RunButton } from '../components/ui';
 import { LatencyChart } from '../components/LatencyChart';
 export function LatencyPage() {
   const test = useLatency();
@@ -286,9 +287,12 @@ export function PingPage({ tcp = false }: { tcp?: boolean }) {
     </>
   );
 }
-export function DnsLookupPage({ reverse = false }: { reverse?: boolean }) {
+export function DnsLookupPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const recordTypes = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'CAA', 'PTR'];
+  const type = recordTypes.includes(searchParams.get('type') || '') ? searchParams.get('type')! : 'A';
+  const reverse = type === 'PTR';
   const [name, setName] = useState(''),
-    [type, setType] = useState('A'),
     [data, setData] = useState<DNSResult>(),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
@@ -314,8 +318,8 @@ export function DnsLookupPage({ reverse = false }: { reverse?: boolean }) {
   return (
     <>
       <PageTitle
-        title={localize(reverse ? 'Reverse DNS' : 'DNS Lookup')}
-        description="Query configurable DNS-over-HTTPS resolvers. These are DNS records, not a DNS leak test."
+        title={localize('DNS Lookup')}
+        description="Query an IP address for a PTR record, or look up a domain using DNS-over-HTTPS."
       />
       <form className="card tool-form" onSubmit={(e) => void submit(e)}>
         <div className="form-grid">
@@ -328,16 +332,17 @@ export function DnsLookupPage({ reverse = false }: { reverse?: boolean }) {
               placeholder={localize(reverse ? '8.8.8.8' : 'example.com')}
             />
           </label>
-          {!reverse && (
-            <label>
-              {localize(' Record type ')}
-              <select value={type} onChange={(e) => setType(e.target.value)}>
-                {['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'CAA'].map((t) => (
-                  <option key={t}>{localize(t)}</option>
-                ))}
-              </select>
-            </label>
-          )}
+          <label>
+            {localize(' Record type ')}
+            <select
+              value={type}
+              onChange={(e) => setSearchParams({ type: e.target.value }, { replace: true })}
+            >
+              {recordTypes.map((t) => (
+                <option key={t}>{localize(t)}</option>
+              ))}
+            </select>
+          </label>
           <RunButton busy={busy}>{localize('Query DNS')}</RunButton>
         </div>
       </form>
@@ -392,205 +397,6 @@ export function DnsLookupPage({ reverse = false }: { reverse?: boolean }) {
             description="Select a record type and submit a domain to see real resolver answers."
           />
         )}
-      </Card>
-    </>
-  );
-}
-type GlobalResult = ProbeNode & { result: PingResult };
-const locations = [
-  { id: 'sin', location: 'Singapore', latitude: 1.35, longitude: 103.82 },
-  { id: 'hkg', location: 'Hong Kong', latitude: 22.32, longitude: 114.17 },
-  { id: 'nrt', location: 'Tokyo', latitude: 35.68, longitude: 139.69 },
-  { id: 'lax', location: 'Los Angeles', latitude: 34.05, longitude: -118.24 },
-  { id: 'fra', location: 'Frankfurt', latitude: 50.11, longitude: 8.68 },
-  { id: 'lhr', location: 'London', latitude: 51.51, longitude: -0.13 },
-];
-export function RemotePage({ trace = false }: { trace?: boolean }) {
-  const health = useHealth();
-  const [host, setHost] = useState(''),
-    [busy, setBusy] = useState(false),
-    [error, setError] = useState(''),
-    [global, setGlobal] = useState<GlobalResult[]>(),
-    [result, setResult] = useState<TraceResult>();
-  const run = async (e: FormEvent) => {
-    e.preventDefault();
-    setBusy(true);
-    setError('');
-    try {
-      if (trace) setResult(await api('/api/trace', { host }));
-      else setGlobal(await api('/api/global', { host }));
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <>
-      <PageTitle
-        title={localize(trace ? 'Traceroute' : 'Global Ping')}
-        description={
-          trace
-            ? 'Hop-by-hop visibility from a real probe agent.'
-            : 'One target. Six possible vantage points. Only real, available agents return measurements.'
-        }
-      />
-      <form className="card tool-form" onSubmit={(e) => void run(e)}>
-        <label htmlFor="remote-target">{localize('Target hostname / IP')}</label>
-        <div className="input-row">
-          <input
-            id="remote-target"
-            required
-            placeholder={localize('example.com')}
-            value={host}
-            onChange={(e) => setHost(e.target.value)}
-          />
-          <RunButton busy={busy} disabled={!health.data?.providers.remoteProbe}>
-            {localize(' Run ')}
-            {localize(trace ? 'traceroute' : 'global test')}
-          </RunButton>
-        </div>
-      </form>
-      {!health.data?.providers.remoteProbe && (
-        <Notice>
-          {localize(
-            trace
-              ? 'Traceroute requires a Probe Agent.'
-              : 'Node unavailable. Configure PROBE_URL and PROBE_SECRET to connect a coordinator.',
-          )}
-        </Notice>
-      )}
-      {error && <Notice error>{localize(error)}</Notice>}
-      {!trace && (
-        <Card
-          title={localize('Probe network')}
-          subtitle="Schematic positions · measurements only appear after a successful probe"
-        >
-          <svg
-            className="probe-map"
-            viewBox="0 0 900 300"
-            role="img"
-            aria-label={localize(
-              'Six proposed probe locations; target links appear only for real successful results',
-            )}
-          >
-            <defs>
-              <pattern id="map-grid" width="30" height="30" patternUnits="userSpaceOnUse">
-                <path d="M30 0H0V30" fill="none" stroke="var(--border)" />
-              </pattern>
-            </defs>
-            <rect width="900" height="300" fill="url(#map-grid)" />
-            {locations.map((node, i) => {
-              const x = (node.longitude + 180) * 2.5,
-                y = (90 - node.latitude) * 1.6;
-              const r = global?.find((n) => n.id === node.id)?.result;
-              return (
-                <g key={node.id}>
-                  {r?.success && (
-                    <path
-                      d={`M${x} ${y} Q450 20 450 250`}
-                      fill="none"
-                      stroke="var(--accent)"
-                      strokeDasharray="5 5"
-                    />
-                  )}
-                  <circle cx={x} cy={y} r="5" fill={r?.success ? 'var(--accent)' : 'var(--muted)'} />
-                  <text x={x + 9} y={y + (i === 1 ? 25 : i === 5 ? -14 : 4)} fill="var(--text)" fontSize="12">
-                    {localize(node.location)}
-                  </text>
-                </g>
-              );
-            })}
-            {global?.some((n) => n.result.success) && (
-              <text x="450" y="277" textAnchor="middle" fill="var(--accent)" fontSize="13">
-                {localize(' Target: ')}
-                {localize(host)}
-                {localize(' (schematic) ')}
-              </text>
-            )}
-          </svg>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{localize('Location')}</th>
-                  <th>{localize('Status')}</th>
-                  <th>{localize('Latency')}</th>
-                  <th>{localize('Target IP')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {locations.map((n) => {
-                  const r = global?.find((g) => g.id === n.id)?.result;
-                  return (
-                    <tr key={n.id}>
-                      <td>{localize(n.location)}</td>
-                      <td>
-                        {localize(
-                          r?.supported
-                            ? r.success
-                              ? 'Responded'
-                              : 'Failed'
-                            : r?.message || 'Node unavailable',
-                        )}
-                      </td>
-                      <td>{localize(r?.latency !== undefined ? r.latency.toFixed(2) + ' ms' : '—')}</td>
-                      <td>{localize(r?.targetIp || 'Unknown')}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
-      {trace && (
-        <Card title={localize('Route hops')}>
-          {result?.supported ? (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    {['Hop', 'IP', 'Hostname', 'ASN', 'Country', 'Latency'].map((x) => (
-                      <th key={x}>{localize(x)}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.hops.map((h) => (
-                    <tr key={h.hop}>
-                      <td>{localize(h.hop)}</td>
-                      <td>{localize(h.ip || '*')}</td>
-                      <td>{localize(h.hostname || 'Unknown')}</td>
-                      <td>{localize(h.asn || 'Unknown')}</td>
-                      <td>{localize(h.country || 'Unknown')}</td>
-                      <td>{localize(h.latency === null ? '*' : h.latency + ' ms')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <Empty
-              title={localize('No route measured')}
-              description={
-                result?.message ||
-                'A connected probe is required to report route hops. Browser fetch cannot perform traceroute.'
-              }
-            />
-          )}
-        </Card>
-      )}
-      <Card title={localize('Probe contract')}>
-        <DataList
-          data={{
-            Transport: 'Authenticated HTTPS',
-            Authentication: 'Bearer PROBE_SECRET',
-            'Target policy': 'Resolve all addresses, validate, then pin connection IP',
-            'Execution policy': 'Fixed executable and arguments; never shell=true',
-            'Result source': 'Provider Detection — Remote Probe Agent',
-          }}
-        />
       </Card>
     </>
   );

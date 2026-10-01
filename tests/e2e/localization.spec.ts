@@ -11,9 +11,13 @@ test.describe('Chinese interface', () => {
     await expect(page.getByRole('heading', { name: '看清你的网络。' })).toBeVisible();
     await expect(page).toHaveTitle('概览 · NetProbe');
     await expect(page.getByText('本地无法获取')).toBeVisible();
-    await page.screenshot({ path: 'artifacts/zh-overview-light.png', fullPage: true });
+    await page.screenshot({
+      path: 'artifacts/zh-overview-light.png',
+      fullPage: true,
+      animations: 'disabled',
+    });
     await page.getByRole('button', { name: '切换明暗主题' }).click();
-    await page.screenshot({ path: 'artifacts/zh-overview-dark.png', fullPage: true });
+    await page.screenshot({ path: 'artifacts/zh-overview-dark.png', fullPage: true, animations: 'disabled' });
     for (const route of [
       '/ip',
       '/asn',
@@ -23,13 +27,9 @@ test.describe('Chinese interface', () => {
       '/http-ping',
       '/latency',
       '/dns-lookup',
-      '/reverse',
-      '/global',
-      '/trace',
       '/environment',
       '/fingerprint',
       '/webrtc',
-      '/dns',
       '/developers',
       '/status',
       '/tools',
@@ -54,8 +54,12 @@ test.describe('Chinese interface', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByRole('heading', { name: '看清你的网络。' })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.screenshot({ path: 'artifacts/zh-overview-mobile.png', fullPage: true });
-    await page.getByRole('button', { name: '打开菜单' }).click();
+    await page.screenshot({
+      path: 'artifacts/zh-overview-mobile.png',
+      fullPage: true,
+      animations: 'disabled',
+    });
+    await page.getByRole('button', { name: '更多工具' }).click();
     await page.getByRole('navigation').getByRole('link', { name: '浏览器环境', exact: true }).click();
     await expect(page.locator('main h1')).toHaveText('浏览器环境');
     expect(errors).toEqual([]);

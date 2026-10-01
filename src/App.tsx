@@ -1,6 +1,6 @@
 import { localize } from './config/i18n';
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Route, Routes, Link } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Link, Navigate } from 'react-router-dom';
 import { Shell } from './layouts/Shell';
 import { Skeleton } from './components/ui';
 const Overview = lazy(() => import('./pages/Overview'));
@@ -8,11 +8,9 @@ const Intelligence = lazy(() => import('./pages/Intelligence'));
 const Ping = lazy(() => import('./pages/NetworkTools').then((m) => ({ default: m.PingPage })));
 const Latency = lazy(() => import('./pages/NetworkTools').then((m) => ({ default: m.LatencyPage })));
 const DNS = lazy(() => import('./pages/NetworkTools').then((m) => ({ default: m.DnsLookupPage })));
-const Remote = lazy(() => import('./pages/NetworkTools').then((m) => ({ default: m.RemotePage })));
 const Environment = lazy(() => import('./pages/Privacy').then((m) => ({ default: m.EnvironmentPage })));
 const Fingerprint = lazy(() => import('./pages/Privacy').then((m) => ({ default: m.FingerprintPage })));
 const WebRTC = lazy(() => import('./pages/Privacy').then((m) => ({ default: m.WebRtcPage })));
-const DnsLeak = lazy(() => import('./pages/Privacy').then((m) => ({ default: m.DnsLeakPage })));
 const Tools = lazy(() => import('./pages/Developer').then((m) => ({ default: m.ToolsPage })));
 const Developers = lazy(() => import('./pages/Developer').then((m) => ({ default: m.DeveloperPage })));
 const Status = lazy(() => import('./pages/Developer').then((m) => ({ default: m.StatusPage })));
@@ -37,13 +35,13 @@ export default function App() {
             <Route path="tcping" element={<Ping key="tcp" tcp />} />
             <Route path="latency" element={<Latency />} />
             <Route path="dns-lookup" element={<DNS />} />
-            <Route path="reverse" element={<DNS key="reverse" reverse />} />
-            <Route path="global" element={<Remote />} />
-            <Route path="trace" element={<Remote key="trace" trace />} />
+            <Route path="reverse" element={<Navigate to="/dns-lookup?type=PTR" replace />} />
+            <Route path="global" element={<Navigate to="/ping" replace />} />
+            <Route path="trace" element={<Navigate to="/ping" replace />} />
             <Route path="environment" element={<Environment />} />
             <Route path="fingerprint" element={<Fingerprint />} />
             <Route path="webrtc" element={<WebRTC />} />
-            <Route path="dns" element={<DnsLeak />} />
+            <Route path="dns" element={<Navigate to="/webrtc" replace />} />
             <Route path="tools" element={<Tools />} />
             <Route path="developers" element={<Developers />} />
             <Route path="status" element={<Status />} />

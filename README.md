@@ -26,10 +26,16 @@
 | WebRTC 检测              | 实际 ICE 候选与公共 STUN                       | 点击后联系 STUN；候选缺失不等于没有泄露    |
 | HTTP 延迟                | 浏览器发起 10 次真实请求并统计往返时间         | 测量浏览器到当前服务的 HTTP 延迟           |
 | HTTP / TCP 探测          | 校验公网地址后固定目标 IP；Workers 使用 socket | 受运行时和目标网络策略限制                 |
-| ICMP、全球探测、路由追踪 | 已实现远程探针调用协议与界面                   | 需要另行部署并配置真实探针                 |
-| DNS 泄露检测             | 随机域名与权威 DNS 采集服务协议                | 需要自建权威 DNS 采集服务                  |
+| ICMP、全球探测、路由追踪 | 后端保留远程探针调用协议；Beta 精简高级页面    | 需要另行部署并配置真实探针                 |
+| DNS 泄露检测             | 后端保留权威 DNS 采集协议；Beta 移除检测页面   | 需要自建权威 DNS 采集服务                  |
 
-19 个独立页面覆盖概览、查询、检测工具、接口文档与系统状态。网络地址、域名、组织名称、协议名称和 API 字段保持原始含义；第三方地名不会通过猜测强行翻译。中文浏览器包括 `zh-CN`、`zh-TW`、`zh-HK` 等语言标识，当前统一呈现简体中文。
+15 个页面入口覆盖概览、查询、检测工具、接口文档与系统状态。网络地址、域名、组织名称、协议名称和 API 字段保持原始含义；第三方地名不会通过猜测强行翻译。中文浏览器包括 `zh-CN`、`zh-TW`、`zh-HK` 等语言标识，当前统一呈现简体中文。
+
+## Beta 界面
+
+顶部横向导航常驻概览、IP 查询、风险分析、DNS 查询和延迟测试；ASN、HTTP / TCP 连通性、浏览器环境、指纹和 WebRTC 收进“更多工具”。导航、卡片和控件采用柔和圆角，支持明暗主题与手机横向滚动。
+
+Beta 精简了全球节点检测、路由追踪和 DNS 泄露检测页面；反向 DNS 已合并为 DNS 查询中的 PTR 类型。旧页面地址跳转到对应核心工具，后端 API 保持兼容。页尾保留源码许可证及 whois.f1shyu.com 设计参考声明。
 
 ## 快速开始
 
@@ -193,7 +199,7 @@ docs/verification.md  实际验证记录
 
 新增界面文案时保留英文源文案，在 `src/config/zh.ts` 添加中文，在渲染边界调用 `localize`。不要翻译表单值、API 键、网络协议字段或指纹输入；避免改变检测语义。语言读取浏览器首选项，调整浏览器首选语言后刷新即可验证。
 
-技术栈：React 19、TypeScript、Vite、Tailwind 4、Hono、Zod、TanStack Query、Recharts、Lucide、Vitest 与 Playwright。构建生成 19 个页面入口、规范链接、OpenGraph、站点地图与 `/openapi.json`；页面主体为客户端渲染，未实现内容级服务端渲染。
+技术栈：React 19、TypeScript、Vite、Tailwind 4、Hono、Zod、TanStack Query、Recharts、Lucide、Vitest 与 Playwright。构建生成 15 个页面入口、规范链接、OpenGraph、站点地图与 `/openapi.json`；页面主体为客户端渲染，未实现内容级服务端渲染。
 
 API 统一返回 `success/data/meta` 或 `success/error`。能力不可用可能返回 `data.supported=false`；输入错误、拒绝、限流、上游失败分别使用相应 HTTP 状态码。界面的中文翻译不改变 API 协议。使用示例见 `/developers`。
 
@@ -214,3 +220,5 @@ API 统一返回 `success/data/meta` 或 `success/error`。能力不可用可能
 ## 验证状态
 
 2026-10-01 已通过 83 项单元测试、6 项浏览器测试、生产构建与 Cloudflare 部署预检。Git 推送触发的自动构建及生产发布也已成功验证，记录见 [验证文档](docs/verification.md)。测试覆盖 19 个页面、中文与英文回退、移动端、主题、输入错误、浏览器指纹及真实延迟请求。
+
+本次 Beta 界面更新通过 83 项单元测试、7 项浏览器测试、规范与类型检查，以及 beta 生产构建。新增验证涵盖横向菜单、键盘与点击外部关闭、旧页面跳转及合并后的 PTR 查询；精简后的构建保留 15 个页面入口。
