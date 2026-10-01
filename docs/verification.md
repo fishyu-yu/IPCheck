@@ -31,7 +31,7 @@
 
 ## 发布与外部服务边界
 
-Cloudflare Worker 已在此前发布到 [线上站点](https://netprobe.yangzhan-ms.workers.dev)。本次更新的发布结果以 GitHub 提交与 Cloudflare 部署记录为准；部署预检本身不会更新线上版本，也不证明 Git 自动部署连接已建立。
+Cloudflare Worker 已发布到 [线上站点](https://netprobe.yangzhan-ms.workers.dev)，Git 自动部署已通过实际推送验证。部署预检、手动发布与自动构建分别验证，不能相互替代。
 
 未提供付费风险数据源密钥、真实 ICMP / 路由追踪节点或权威 DNS 采集服务器。相关调用协议、数据校验与降级界面已实现，第三方归一化使用独立测试样例验证，不能将这些测试等同于真实服务验收。EdgeOne 适配器未在真实账号完成生产验证。
 
@@ -39,4 +39,8 @@ Cloudflare Worker 已在此前发布到 [线上站点](https://netprobe.yangzhan
 
 2026-10-01 已将中文界面、UI 与文档提交 `324ab05` 同步到 GitHub `master`，远程 Git 对象 SHA 与本地一致。Cloudflare 手动发布成功，版本为 `f89c9fe1-7e0e-4b8b-92d7-6814673388cd`。
 
-随后已在 Cloudflare 控制台连接 `fishyu-yu/IPCheck` 的 `master`，构建命令 `pnpm run build:ci`，部署命令 `npx wrangler deploy`，根目录 `/`，关闭非生产分支预览。本次文档提交用于验证该 Git 推送触发链路；最终状态以 Cloudflare 构建记录为准。
+随后已在 Cloudflare 控制台连接 `fishyu-yu/IPCheck` 的 `master`，构建命令 `pnpm run build:ci`，部署命令 `npx wrangler deploy`，根目录 `/`，关闭非生产分支预览。
+
+推送 `297ea7a` 后自动触发构建 `5a3427df-cc02-4f00-ae6e-eb627a89edca`，初始化、克隆、依赖安装、构建和部署均成功，总耗时 1 分 9 秒；构建环境为 Node.js 24.21.0 / pnpm 10.11.1。对应部署版本 `f3132915-c438-4167-b641-5d2a83989987` 已接收 100% 生产流量。成功截图保存在本地 `artifacts/cloudflare-auto-deploy.jpg`。可在 [GitHub 构建检查](https://github.com/fishyu-yu/IPCheck/runs/110077162087) 或 Cloudflare 控制台核对。
+
+维护者的云端许可证提交 `bbb8961` 已合并保留；README 按当前 LICENSE 更新为 GNU AGPL v3，网站页脚提供源码入口。

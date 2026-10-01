@@ -214,11 +214,11 @@ export function Shell() {
             {localize(' ')}
             {localize(site.tagline)}
           </span>
-          <NavLink to="/developers">
+          <a href="https://github.com/fishyu-yu/IPCheck" target="_blank" rel="noopener noreferrer">
             <Terminal size={13} />
-            {localize(' Built for transparency ')}
+            {localize('Source code')} · AGPL v3
             <ArrowUpRight size={13} />
-          </NavLink>
+          </a>
         </footer>
       </div>
     </div>

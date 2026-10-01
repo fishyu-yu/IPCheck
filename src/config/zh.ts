@@ -452,6 +452,7 @@ NetworkError when attempting to fetch resource.|网络请求失败，请稍后�
 Public address required|需要公网地址
 Language follows your browser|语言跟随浏览器设置
 Skip to content|跳至主要内容
+Source code|查看源码
 DEV_PUBLIC_IP is an explicitly configured development address, not an automatically detected visitor address.|DEV_PUBLIC_IP 是手动配置的开发测试地址，并非自动检测到的访客地址。
 countryCode|国家或地区代码
 country|国家或地区

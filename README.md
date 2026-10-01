@@ -33,7 +33,7 @@
 
 ## 快速开始
 
-使用 Node.js 24（仓库包含 `.node-version`）及 pnpm。依赖由 `pnpm-lock.yaml` 固定。
+使用 Node.js 24（仓库包含 `.node-version`）及 pnpm 10 或更新版本。依赖由 `pnpm-lock.yaml` 固定；Cloudflare 已实测 Node.js 24.21.0 / pnpm 10.11.1。
 
 ```bash
 git clone https://github.com/fishyu-yu/IPCheck.git
@@ -66,16 +66,16 @@ pnpm dev
 
 当前 Worker 名称为 `netprobe`，已通过 Cloudflare Workers Builds 连接 `fishyu-yu/IPCheck`，生产分支为 `master`。向该分支推送会自动检查、构建并部署。其他账号复用本项目时，仍需在自己的 Cloudflare 控制台建立 Git 连接。
 
-在 Cloudflare 的 **Workers 和 Pages → netprobe → 设置 → 构建** 中连接仓库，使用以下配置：
+当前已保存并验证的配置如下；迁移到其他账号时，在 **Workers 和 Pages → Worker → 设置 → 构建** 中连接仓库并设置：
 
-| 设置           | 值                                |
-| -------------- | --------------------------------- |
-| GitHub 仓库    | `fishyu-yu/IPCheck`               |
-| 生产分支       | `master`                          |
-| 根目录         | 仓库根目录 `/`                    |
-| 构建命令       | `pnpm run build:ci`               |
-| 部署命令       | `pnpm exec wrangler deploy`       |
-| 非生产分支预览 | 按需启用；生产部署只跟踪 `master` |
+| 设置           | 值                              |
+| -------------- | ------------------------------- |
+| GitHub 仓库    | `fishyu-yu/IPCheck`             |
+| 生产分支       | `master`                        |
+| 根目录         | 仓库根目录 `/`                  |
+| 构建命令       | `pnpm run build:ci`             |
+| 部署命令       | `npx wrangler deploy`           |
+| 非生产分支预览 | 已关闭；生产部署只跟踪 `master` |
 
 连接成功后，向 `master` 推送提交会触发 Cloudflare 拉取代码、安装依赖、检查、构建与部署。构建失败时不会执行部署命令。构建记录中的提交 SHA 应与 GitHub 最新提交一致；出现失败时查看该次构建日志。配置依据见 [Cloudflare Workers Builds 官方文档](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)。
 
@@ -192,4 +192,8 @@ API 统一返回 `success/data/meta` 或 `success/error`。能力不可用可能
 
 ## 许可证
 
-项目当前采用 [GNU AGPL v3 许可证](LICENSE)。
+项目当前采用 [GNU AGPL v3 许可证](LICENSE)，已同步仓库维护者在云端提交的许可证更新。许可证正文保留英文原文，具体条款以该文件为准；README 中不再沿用旧 MIT 说明。网站页脚提供公开源码入口。
+
+## 验证状态
+
+2026-10-01 已通过 83 项单元测试、6 项浏览器测试、生产构建与 Cloudflare 部署预检。Git 推送触发的自动构建及生产发布也已成功验证，记录见 [验证文档](docs/verification.md)。测试覆盖 19 个页面、中文与英文回退、移动端、主题、输入错误、浏览器指纹及真实延迟请求。
