@@ -27,16 +27,9 @@ export default function App() {
       <Routes>
         <Route element={<Shell />}>
           <Route index element={<Overview />} />
-          <Route path="ip" element={<Intelligence kind="ip" />} />
-          <Route path="asn" element={<Intelligence kind="asn" />} />
-          <Route
-            path="risk"
-            element={
-              <AvailableTool tool="risk">
-                <Intelligence kind="risk" />
-              </AvailableTool>
-            }
-          />
+          <Route path="ip" element={<Intelligence key="ip" kind="ip" />} />
+          <Route path="asn" element={<Intelligence key="asn" kind="asn" />} />
+          <Route path="risk" element={<Intelligence key="risk" kind="risk" />} />
           <Route
             path="ping"
             element={

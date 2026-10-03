@@ -26,29 +26,31 @@ test('unavailable tools disappear from every entry point while configured implem
   });
   await page.goto('/');
   await expect(page.locator('.route-view h1')).toBeVisible();
-  await expect(page.getByRole('navigation').getByRole('link', { name: 'Risk Analysis' })).toHaveCount(0);
+  await expect(page.getByRole('navigation').getByRole('link', { name: 'IP Purity' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'IP purity', exact: true })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Risk analysis', exact: true })).toHaveCount(0);
   await page.getByRole('button', { name: 'More tools' }).click();
   await expect(page.getByRole('navigation').getByRole('link', { name: 'TCP Ping' })).toHaveCount(0);
   await expect(page.getByRole('navigation').getByRole('link', { name: 'Ping', exact: true })).toBeVisible();
   await page.goto('/tools');
-  await expect(page.locator('main')).not.toContainText('Risk Analysis');
+  await expect(page.locator('main').getByRole('link', { name: 'IP Purity', exact: true })).toBeVisible();
   await expect(page.locator('main')).not.toContainText('TCP Ping');
   await page.goto('/ping');
   await expect(page.getByLabel('Mode')).toHaveValue('http');
   await expect(page.getByLabel('Mode').locator('option')).toHaveCount(1);
   await page.goto('/risk');
-  await expect(page).toHaveURL(/\/tools$/);
+  await expect(page.getByRole('heading', { name: 'IP Purity', exact: true })).toBeVisible();
+  await expect(page.getByText('A public IP is needed')).toBeVisible();
   expect(riskRequests).toEqual([]);
 
   await page.route('**/api/health', (route) =>
     route.fulfill({ json: { success: true, data: enabledHealth } }),
   );
   await page.goto('/tools');
-  await expect(page.locator('main').getByRole('link', { name: 'Risk Analysis', exact: true })).toBeVisible();
+  await expect(page.locator('main').getByRole('link', { name: 'IP Purity', exact: true })).toBeVisible();
   await expect(page.locator('main').getByRole('link', { name: 'TCP Ping', exact: true })).toBeVisible();
   await page.goto('/risk');
-  await expect(page.getByRole('heading', { name: 'Risk Analysis', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'IP Purity', exact: true })).toBeVisible();
   await page.goto('/tcping');
   await expect(page.getByRole('heading', { name: 'TCP Ping', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Single test' })).toBeEnabled();

@@ -14,6 +14,8 @@ export interface RateBinding {
 export interface Env {
   IPINFO_TOKEN?: string;
   IPQS_KEY?: string;
+  IPAPI_KEY?: string;
+  PURITY_PUBLIC_FEEDS?: string;
   ABUSEIPDB_KEY?: string;
   GEO_FREE_PROVIDER?: string;
   DOH_URLS?: string;

@@ -1,4 +1,4 @@
-import type { ApiResponse, IPInfo, PlatformCapabilities, RiskResult } from '../types';
+import type { ApiResponse, IPInfo, PlatformCapabilities, PurityResult, RiskResult } from '../types';
 export async function api<T>(path: string, body?: unknown, signal?: AbortSignal): Promise<T> {
   const response = await fetch(path, {
     method: body === undefined ? 'GET' : 'POST',
@@ -15,9 +15,11 @@ export interface Health {
   status: string;
   platform: string;
   capabilities: PlatformCapabilities;
-  providers: { geo: boolean; risk: boolean; remoteProbe: boolean };
+  providers: { geo: boolean; risk: boolean; purity?: boolean; remoteProbe: boolean };
   rateLimit: string;
 }
 export const getCurrentIp = () => api<IPInfo>('/api/ip');
 export const getHealth = () => api<Health>('/api/health');
 export const getRisk = (ip: string) => api<RiskResult>('/api/risk/' + encodeURIComponent(ip));
+export const getPurity = (ip: string, signal?: AbortSignal) =>
+  api<PurityResult>('/api/purity/' + encodeURIComponent(ip), undefined, signal);

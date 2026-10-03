@@ -516,6 +516,117 @@ Every resolved address must be public; mixed public/private answers are rejected
 Service endpoints must be HTTPS URLs without credentials or query strings|服务地址必须使用 HTTPS，且不包含凭证或查询参数
 Empty upstream response|上游服务返回了空响应
 Network diagnostics with clear sources and privacy-first browser tools.|来源清晰、注重隐私的网络诊断工具。
+IP Purity|IP 纯净度
+IP purity|IP 纯净度
+purity|IP 纯净度
+Local model · higher score means cleaner evidence|本地模型 · 分数越高，已观测的证据越纯净
+Network types, anonymity, abuse evidence, and recent malicious neighbors in one transparent local model.|结合网络类型、匿名特征、滥用记录与近期恶意邻居，以透明的本地模型评估。
+ASN network type|ASN 网络类型
+Company network type|公司网络类型
+ASN type|ASN 类型
+Company type|公司类型
+ISP / access network|ISP / 接入网络
+Hosting / datacenter|托管 / 数据中心
+Classification unavailable|暂无分类证据
+No classification evidence|暂无分类证据
+Inferred classification|推断分类
+Provider classification|数据源分类
+Source unavailable|暂无来源
+High evidence confidence|证据可信度：高
+Medium evidence confidence|证据可信度：中
+Low evidence confidence|证据可信度：低
+Evidence coverage|证据覆盖率
+High purity|高纯净度
+Moderate purity|中等纯净度
+Low purity|低纯净度
+Insufficient evidence|证据不足
+Assessing IP purity…|正在评估 IP 纯净度…
+Checking network types, threat feeds, and recent malicious neighbors.|正在查询网络类型、威胁情报与近期恶意邻居。
+Purity assessment unavailable|暂时无法评估纯净度
+A public IP is needed|需要一个公网 IP
+Look up a public IPv4 or IPv6 address to assess its purity.|查询公网 IPv4 或 IPv6 地址，即可评估纯净度。
+The service returned an invalid assessment. Try again.|服务返回的评估无效，请重试。
+Retry assessment|重新评估
+Refreshing assessment…|正在刷新评估…
+Refresh failed. Showing the previous assessment.|刷新失败，当前显示上次评估。
+Insufficient evidence. A neutral baseline is not a clean verdict.|证据不足。中性基准分不代表 IP 纯净。
+Limited evidence. Missing checks retain a neutral contribution.|证据覆盖有限，缺失的检测项按中性分计入。
+Confidence describes evidence coverage and quality, not a probability of safety.|可信度说明证据覆盖与质量，不代表安全概率。
+Scoring factors|评分因素
+Factor score|因素得分
+Weight|权重
+Evidence unavailable|暂无证据
+Inferred evidence|推断证据
+Observed evidence|已观测证据
+Anonymity evidence|匿名网络证据
+Abuse and threat evidence|滥用与威胁证据
+Neighbor observations|邻居观测
+Observed network|观测网络
+Neighbor sample network|邻居采样网络
+Neighbor source|邻居数据来源
+Density network|密度统计网络
+Density source|密度数据来源
+Company network|公司网络
+No network sample available|暂无网络样本
+Recent malicious neighbors|近期恶意邻居
+Count unavailable|暂无数量证据
+Abuse density|滥用地址占比
+Density unavailable|暂无密度证据
+Neighbors are recent malicious addresses reported by the listed source. This is not a measurement of general network activity or proof this IP is malicious.|邻居数量指数据源记录的近期恶意地址，不是普通网络活跃度，也不能据此断言此 IP 恶意。
+Evidence sources|证据来源
+Checked|已查询
+Feed unavailable|情报不可用
+Feed timestamp|情报时间
+Timestamp not supplied|未提供时间
+No public threat feed was available for this assessment.|本次评估未取得公共威胁情报。
+Public feeds cover selected threats and current observations. No match does not prove an IP has no abuse history.|公共情报仅覆盖特定威胁与当前观测；未命中不能证明 IP 没有滥用历史。
+Conflicting source findings were retained; inspect the evidence before relying on the score.|已保留存在冲突的数据源结论，请结合证据使用评分。
+Assessment model|评估模型
+Neighborhood evidence counts feed-listed neighbors or reported network abuse, not generic IP liveness|邻居证据统计情报名单中的地址或网段滥用报告，不代表普通 IP 的在线活跃度。
+CINS Army feed has no matching IP-family coverage; absence remains unknown|CINS Army 情报未覆盖当前 IP 地址族，未命中仍视为未知。
+CINS Army lists current reputation threats with a 15,000-IP cap; individual activity times and unlisted threats are unknown|CINS Army 提供最多 15,000 个当前威胁地址；单个地址的活动时间与未列入的威胁仍未知。
+Specific adverse evidence applies a cap to the final score. The factor scores remain visible.|特定不利证据限制了最终分数，各因素评分仍完整展示。
+Public threat lists are matched locally without sending the target IP to their publishers. Purity results are cached for up to 15 minutes; optional classification and risk services receive the queried IP.|公共威胁名单在本地匹配，不向名单发布方发送目标 IP。纯净度结果最多缓存 15 分钟；可选分类与风险服务会收到查询 IP。
+Assessed at|评估时间
+Inspect purity evidence|查看纯净度证据
+Local IP purity assessment|本地 IP 纯净度评估
+IP purity uses a local weighted model with explicit evidence coverage. Higher scores mean cleaner observed evidence; missing evidence remains neutral and does not prove safety. Unsupported tests report limitations, never invented measurements.|IP 纯净度由本地加权模型计算，并公开证据覆盖率。分数越高表示已观测证据越纯净；缺少证据按中性分处理，不能证明安全。不支持的检测会说明限制，不会编造数据。
+Provider network classification|数据源提供的网络分类
+Estimated from organization name|由组织名称推断
+Network classification unavailable|暂无网络分类证据
+Anonymity detected|已发现匿名网络特征
+No anonymity flags in checked sources|已查询来源未标记匿名网络特征
+Anonymity checks incomplete|匿名网络检测不完整
+Recent abuse or threat detected|已发现近期滥用或威胁
+No match in limited public threat feeds|有限公共威胁情报中未命中
+Abuse checks incomplete|滥用检测不完整
+Recent malicious neighbors observed|已观测到近期恶意邻居
+No recent malicious neighbors in this feed|该情报中无近期恶意邻居
+Neighborhood data unavailable|暂无邻居数据
+Company network abuse density|公司网络滥用地址占比
+Incomplete evidence; the score is a conservative local estimate.|证据不完整，评分为保守的本地估算。
+Conflicting sources; adverse evidence takes precedence.|数据源存在冲突，优先计入不利证据。
+Purity assessment requires a public unicast address|纯净度评估需要公网单播地址
+Organization metadata unavailable; name classification unknown|组织信息不可用，暂无名称分类证据
+Feodo feed has no IPv6 coverage; IPv6 absence remains unknown|Feodo 情报未覆盖 IPv6，IPv6 未命中仍视为未知
+Tor exit feed has no IPv6 coverage; IPv6 absence remains unknown|Tor 出口情报未覆盖 IPv6，IPv6 未命中仍视为未知
+ipapi.is unavailable or returned no valid keyed intelligence; using local evidence|ipapi.is 暂不可用或未返回有效情报，正在使用本地证据
+Configured risk provider unavailable|已配置的风险数据源暂不可用
+ASN/company types use conservative local name inference; configure IPAPI_KEY for provider classification|ASN 与公司类型由名称保守推断，可配置分类数据源以提高证据质量
+Public threat feeds disabled by deployment configuration|当前部署已关闭公共威胁情报
+Threat feeds show specific known threats only; no listing does not prove an address is safe|威胁情报仅记录特定已知威胁；未收录不能证明地址安全
+Neighborhood evidence counts recent malicious neighbors or reported network abuse, not generic IP liveness|邻居证据统计近期恶意地址或数据源报告的网络滥用，不表示普通 IP 在线活跃度
+ipapi.is ASN classification|ipapi.is ASN 分类
+ipapi.is company classification|ipapi.is 公司分类
+ipapi.is company network abuse fraction|ipapi.is 公司网络滥用地址占比
+Neighborhood threat evidence|邻居威胁证据
+Known threat-list neighbors|威胁名单中的邻居
+Known threat-list neighbors observed|已观测到威胁名单中的邻居
+No neighbors in this limited threat list|该有限威胁名单中无匹配邻居
+CINS Army threat list|CINS Army 威胁名单
+CINS neighbors appear in its current published threat list. Individual event times are not supplied. This does not measure general traffic or online activity and does not prove this IP is malicious.|CINS 邻居指当前发布的威胁名单中的地址，不提供单个事件的时间。该数量不表示普通流量或在线活跃度，也不能证明此 IP 恶意。
+Checking network types, threat feeds, and neighborhood evidence.|正在查询网络类型、威胁情报与邻居证据。
+Network types, anonymity, abuse evidence, and neighborhood threats in one transparent local model.|结合网络类型、匿名特征、滥用记录与邻居威胁，以透明的本地模型评估。
 `
     .trim()
     .split('\n')

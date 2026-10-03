@@ -1,10 +1,11 @@
 import { localize, countryName } from '../config/i18n';
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { api } from '../services/api';
-import { useCurrentIp, useRisk } from '../hooks/queries';
-import type { ASNInfo, IPInfo, RiskResult } from '../types';
+import { useCurrentIp, usePurity } from '../hooks/queries';
+import type { ASNInfo, IPInfo, PurityResult } from '../types';
 import {
   Badge,
   Card,
@@ -17,31 +18,60 @@ import {
   RunButton,
   Skeleton,
 } from '../components/ui';
-import { RiskPanel } from '../components/RiskPanel';
+import { PurityPanel } from '../components/PurityPanel';
 export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) {
   const current = useCurrentIp();
-  const risk = useRisk(kind === 'risk' ? current.data?.ip : null);
-  const [input, setInput] = useState('');
+  const [params] = useSearchParams();
+  const requestedIp = kind === 'risk' ? params.get('ip') : null;
+  const currentPurity = usePurity(kind === 'risk' ? requestedIp || current.data?.ip : null);
+  const [input, setInput] = useState(requestedIp || '');
   const lookup = useMutation({
-    mutationFn: () => api<IPInfo | ASNInfo | RiskResult>(`/api/${kind}/${encodeURIComponent(input.trim())}`),
+    mutationFn: (target: string) =>
+      api<IPInfo | ASNInfo | PurityResult>(
+        `/api/${kind === 'risk' ? 'purity' : kind}/${encodeURIComponent(target)}`,
+      ),
   });
+  const resetLookup = lookup.reset;
+  useEffect(() => {
+    resetLookup();
+    setInput(requestedIp || '');
+  }, [kind, requestedIp, resetLookup]);
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    lookup.mutate();
+    lookup.mutate(input.trim());
   };
-  const data = lookup.data || (kind === 'ip' ? current.data : kind === 'risk' ? risk.data : undefined);
+  const hasLookup = lookup.variables !== undefined;
+  const data = hasLookup
+    ? lookup.isSuccess
+      ? lookup.data
+      : undefined
+    : kind === 'ip'
+      ? current.data
+      : kind === 'risk'
+        ? currentPurity.data
+        : undefined;
   const ip = kind === 'ip' ? (data as IPInfo | undefined) : undefined,
     asn = kind === 'asn' ? (data as ASNInfo | undefined) : undefined;
+  const ipPurity = usePurity(ip?.ip);
+  const purityLoading =
+    lookup.isPending || (!hasLookup && (currentPurity.isFetching || (!requestedIp && current.isLoading)));
+  const purityError =
+    lookup.error || (!hasLookup ? currentPurity.error || (!requestedIp ? current.error : null) : null);
+  const retryPurity = () => {
+    if (hasLookup) lookup.mutate(lookup.variables!);
+    else if (requestedIp || current.data?.ip) void currentPurity.refetch();
+    else void current.refetch();
+  };
   return (
     <>
       <PageTitle
         eyebrow="IP INTELLIGENCE"
-        title={localize({ ip: 'IP Lookup', asn: 'ASN Lookup', risk: 'Risk Analysis' }[kind])}
+        title={localize({ ip: 'IP Lookup', asn: 'ASN Lookup', risk: 'IP Purity' }[kind])}
         description={
           {
             ip: 'Geography, network ownership, and the evidence behind each result.',
             asn: 'Explore an autonomous system and its announced networks.',
-            risk: 'A transparent risk model. Missing evidence is never treated as safe.',
+            risk: 'Network types, anonymity, abuse evidence, and neighborhood threats in one transparent local model.',
           }[kind]
         }
       />
@@ -72,9 +102,30 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
           )}
         </p>
       </form>
-      {lookup.error && <Notice error>{localize(lookup.error.message)}</Notice>}
-      {lookup.isPending && <Skeleton lines={5} />}
-      {kind === 'risk' && <RiskPanel data={data as RiskResult | undefined} />}
+      {kind === 'asn' && lookup.error && <Notice error>{localize(lookup.error.message)}</Notice>}
+      {kind !== 'risk' && lookup.isPending && <Skeleton lines={5} />}
+      {kind === 'risk' && (
+        <PurityPanel
+          ip={hasLookup ? lookup.variables : requestedIp || current.data?.ip}
+          data={data as PurityResult | undefined}
+          loading={purityLoading}
+          error={purityError}
+          onRetry={retryPurity}
+        />
+      )}
+      {kind === 'ip' && (
+        <PurityPanel
+          ip={ip?.ip}
+          data={ipPurity.data}
+          loading={lookup.isPending || (!hasLookup && current.isLoading) || ipPurity.isFetching}
+          error={ipPurity.error || lookup.error || (!hasLookup ? current.error : null)}
+          onRetry={() => {
+            if (ip?.ip) void ipPurity.refetch();
+            else if (hasLookup) lookup.mutate(lookup.variables!);
+            else void current.refetch();
+          }}
+        />
+      )}
       {ip && (
         <>
           <div className="result-title">

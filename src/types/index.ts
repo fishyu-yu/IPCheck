@@ -48,6 +48,8 @@ export interface IPInfo {
   prefix?: string;
   reverseDns?: string;
   hostingProvider?: string;
+  asnType?: PurityTypeEvidence;
+  companyType?: PurityTypeEvidence;
   type: Evidence<IPType>[];
   sources: string[];
   fieldSources?: Record<string, string>;
@@ -71,6 +73,66 @@ export interface RiskResult {
   conflicts: RiskKey[];
   partial: boolean;
   model: string;
+  sources: string[];
+  warnings: string[];
+}
+export type NetworkCategory = 'isp' | 'hosting' | 'business' | 'education' | 'government' | 'unknown';
+export interface PurityTypeEvidence {
+  type: NetworkCategory;
+  source: string;
+  inferred: boolean;
+}
+export interface PurityFeedEvidence {
+  source: string;
+  url: string;
+  checked: boolean;
+  updatedAt: string | null;
+  copyright?: string;
+}
+export interface PurityNeighborhood {
+  cidr: string | null;
+  activityCidr?: string | null;
+  activitySource?: string | null;
+  activityKind?: 'recent-c2' | 'threat-list';
+  activeBadNeighbors: number | null;
+  abuseDensity: number | null;
+  scope: 'ipv4-/24' | 'company-network' | 'none';
+  source: string;
+}
+export interface PurityInput {
+  asnType?: PurityTypeEvidence;
+  companyType?: PurityTypeEvidence;
+  signals: RiskSignal[];
+  neighborhood?: PurityNeighborhood;
+  feeds: PurityFeedEvidence[];
+  warnings: string[];
+}
+export type PurityDimensionKey = 'asn' | 'company' | 'anonymity' | 'abuse' | 'neighborhood';
+export interface PurityDimension {
+  key: PurityDimensionKey;
+  score: number;
+  weight: number;
+  observed: boolean;
+  inferred: boolean;
+  evidence: string;
+  sources: string[];
+}
+export interface PurityResult {
+  ip: string;
+  score: number;
+  level: 'High purity' | 'Moderate purity' | 'Low purity' | 'Insufficient evidence';
+  confidence: 'High' | 'Medium' | 'Low';
+  coverage: number;
+  status: 'assessed' | 'limited' | 'insufficient';
+  model: string;
+  assessedAt: string;
+  dimensions: PurityDimension[];
+  asnType: PurityTypeEvidence;
+  companyType: PurityTypeEvidence;
+  neighborhood: PurityNeighborhood;
+  feeds: PurityFeedEvidence[];
+  signals: RiskSignal[];
+  conflicts: RiskKey[];
   sources: string[];
   warnings: string[];
 }

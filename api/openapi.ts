@@ -5,6 +5,7 @@ export const apiRoutes = [
   ['get', '/api/ip/{ip}', 'IP lookup'],
   ['get', '/api/asn/{asn}', 'ASN lookup'],
   ['get', '/api/risk/{ip}', 'Risk analysis'],
+  ['get', '/api/purity/{ip}', 'Local IP purity assessment'],
   ['get', '/api/ping', 'Browser to edge echo'],
   ['post', '/api/ping', 'HTTP or ICMP probe'],
   ['post', '/api/http-ping', 'HTTP HEAD probe'],

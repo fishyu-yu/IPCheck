@@ -19,12 +19,22 @@ const health: Health = {
 };
 describe('visible runtime tools', () => {
   it('keeps core and browser tools visible while capabilities are loading', () => {
-    for (const key of ['overview', 'ip', 'asn', 'dns', 'latency', 'environment', 'fingerprint', 'webrtc'])
+    for (const key of [
+      'overview',
+      'ip',
+      'asn',
+      'risk',
+      'dns',
+      'latency',
+      'environment',
+      'fingerprint',
+      'webrtc',
+    ])
       expect(isToolAvailable(key)).toBe(true);
-    for (const key of ['risk', 'ping', 'tcp']) expect(isToolAvailable(key)).toBe(false);
+    for (const key of ['ping', 'tcp']) expect(isToolAvailable(key)).toBe(false);
   });
-  it('hides risk without a provider and shows it when configured', () => {
-    expect(isToolAvailable('risk', health)).toBe(false);
+  it('keeps local purity available without external risk providers', () => {
+    expect(isToolAvailable('risk', health)).toBe(true);
     expect(isToolAvailable('risk', { ...health, providers: { ...health.providers, risk: true } })).toBe(true);
   });
   it('shows native HTTP without advertising unsupported sockets', () => {

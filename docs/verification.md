@@ -52,3 +52,15 @@ Cloudflare Worker 已发布到 [线上站点](https://netprobe.yangzhan-ms.worke
 部署配置提交为 `405b949`。本地 beta CI 通过 ESLint、83 项测试、TypeScript 与生产构建；Wrangler beta 部署预检通过。首次手动发布版本为 `7354614f-0f37-4ce5-b6c6-bc94e50bcdc2`。自定义域名 HTTPS 主页和 `/api/health` 均返回 200，健康状态为 `operational`，主页规范链接指向测试域名。
 
 后续推送由 Cloudflare 自动构建，验收时应核对构建记录中的 `beta` 提交 SHA 和成功部署状态。beta 前端及 SEO 使用 `.env.beta`，运行时与路由使用 `wrangler.beta.jsonc`，限流命名空间为 `2001` / `2002`。
+
+## 2026-10-04 IP 纯净度
+
+本地实现独立纯净度接口、五因素模型、常驻入口和 IPv4 / IPv6 降级结果；详情见 [模型说明](ip-purity.md)。验证结果：
+
+- 全部 152 项单元/API 测试通过，包括评分单调性、强风险封顶、无配置兜底、网段匹配、陈旧情报拒绝、IPv6 覆盖、配置隔离、并发合并与缓存刷新保护。
+- 浏览器套件共 21 项：首次 20 项通过，发现中文 IP 查询出现重复错误 alert 后修复；复跑本土化与纯净度相关 10 项全部通过。检查桌面与手机截图，320–1440 px 无横向溢出。
+- 完整 ESLint、TypeScript、beta 前端构建、Worker / EdgeOne / OpenAPI 产物生成和 Cloudflare beta 部署预检通过；预检使用 `--dry-run`，没有发布。
+- 真实网络调用已构建的 EdgeOne API：`8.8.8.8` 与 `2606:4700:4700::1111` 均返回 HTTP 200、有限分数、五项评分、覆盖度及明确限制。前者 60 分／覆盖 20%，后者 53 分／覆盖 6%，均为“证据不足”，没有把少量名单阴性判为高纯净度。
+- Spamhaus IPv4 / IPv6 与 Tor 查询成功。Feodo 推荐列表返回 2026-06-30 的修改时间，程序拒绝其陈旧快照；IPv4 使用更新的 CINS 当前名单，准确计数 `/24` 中的其他地址。CINS / Tor 的 IPv6 不覆盖状态保持未知。
+
+真实网络结果保存在本地 `artifacts/purity-live-smoke.jsonl`，桌面及手机截图为 `artifacts/purity-desktop.png` / `artifacts/purity-mobile.png`。这些是当时的观测，不能保证未来数据源可用；未使用真实付费密钥验收，也未执行上线发布。

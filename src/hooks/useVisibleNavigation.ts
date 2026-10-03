@@ -4,7 +4,7 @@ import { useHealth } from './queries';
 
 // Keep every route and implementation; only advertise capabilities the runtime confirms.
 export function isToolAvailable(key: string, health?: Health): boolean {
-  if (key === 'risk') return health?.providers.risk === true;
+  // The purity model is built in and always accepts public IP lookups.
   if (key === 'ping') return health?.capabilities.httpProbe === true || health?.capabilities.icmp === true;
   if (key === 'tcp') return health?.capabilities.tcpSocket === true || health?.capabilities.icmp === true;
   return true;

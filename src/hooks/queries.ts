@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getCurrentIp, getHealth, getRisk } from '../services/api';
+import { getCurrentIp, getHealth, getPurity, getRisk } from '../services/api';
 export const useCurrentIp = () =>
   useQuery({ queryKey: ['current-ip'], queryFn: getCurrentIp, staleTime: 300000, retry: 0 });
 export const useHealth = () =>
@@ -10,5 +10,13 @@ export const useRisk = (ip?: string | null) =>
     queryFn: () => getRisk(ip!),
     enabled: !!ip,
     staleTime: 3600000,
+    retry: 0,
+  });
+export const usePurity = (ip?: string | null) =>
+  useQuery({
+    queryKey: ['purity', ip],
+    queryFn: ({ signal }) => getPurity(ip!, signal),
+    enabled: !!ip,
+    staleTime: 900000,
     retry: 0,
   });

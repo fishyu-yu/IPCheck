@@ -1,7 +1,7 @@
 import { localize, countryName } from '../config/i18n';
 import { Activity, ArrowRight, Check, Globe2, MapPin, Monitor, Network, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useCurrentIp, useHealth, useRisk } from '../hooks/queries';
+import { useCurrentIp, useHealth, usePurity, useRisk } from '../hooks/queries';
 import {
   Badge,
   Card,
@@ -13,6 +13,7 @@ import {
   Skeleton,
 } from '../components/ui';
 import { RiskPanel } from '../components/RiskPanel';
+import { PurityPanel } from '../components/PurityPanel';
 import { LatencyChart } from '../components/LatencyChart';
 import { useLatency } from '../hooks/useLatency';
 import { statistics } from '../lib/statistics';
@@ -24,6 +25,7 @@ export default function Overview() {
   const query = useCurrentIp(),
     info = query.data,
     risk = useRisk(showRisk ? info?.ip : undefined);
+  const purity = usePurity(info?.ip);
   const latency = useLatency();
   const stats = statistics(latency.samples);
   const location = [
@@ -125,7 +127,15 @@ export default function Overview() {
             <ArrowRight size={14} />
           </Link>
         </Card>
-        {showRisk && <RiskPanel compact data={risk.data} />}
+        <PurityPanel
+          compact
+          ip={info?.ip}
+          data={purity.data}
+          loading={query.isLoading || purity.isFetching}
+          error={purity.error || query.error}
+          onRetry={() => void (info?.ip ? purity.refetch() : query.refetch())}
+        />
+        {showRisk && risk.data && <RiskPanel compact data={risk.data} />}
         <Card
           title={localize('Connection latency')}
           subtitle="Your browser → current edge · HTTP round trip"

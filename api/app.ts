@@ -14,6 +14,9 @@ import { cached } from '../edge/core/cache';
 import { acquireProbe, rateLimit } from '../edge/core/ratelimit';
 import { currentIp, lookupIp } from './ip/service';
 import { riskLookup } from './risk/providers';
+import { collectPurity } from './purity/providers';
+import { calculatePurity } from '../src/lib/purity';
+import { purityModel } from '../src/config/purity.config';
 import { RipeASNProvider } from './lookup/providers';
 import { dnsLookup, recordSchema, reverseName } from './dns/service';
 import {
@@ -100,6 +103,7 @@ export function createApp(adapter: PlatformAdapter) {
           providers: {
             geo: c.env.GEO_FREE_PROVIDER !== 'off' || !!c.env.IPINFO_TOKEN,
             risk: !!(c.env.IPQS_KEY || c.env.ABUSEIPDB_KEY),
+            purity: true,
             remoteProbe: remote,
           },
           rateLimit:
@@ -145,6 +149,34 @@ export function createApp(adapter: PlatformAdapter) {
       (x) => x.checked > 0 && x.warnings.length === 0,
     );
     return c.json(reply(d, adapter.name, d.sources));
+  });
+  app.get('/api/purity/:ip', async (c) => {
+    const ip = ipSchema.parse(c.req.param('ip'));
+    if (!publicIp(ip)) throw new ApiError('BLOCKED_TARGET', 'Purity lookup requires a public address');
+    const profile = [
+      c.env.GEO_FREE_PROVIDER === 'off' ? 'no-free-geo' : 'free-geo',
+      c.env.PURITY_PUBLIC_FEEDS === 'off' ? 'no-feeds' : 'feeds',
+      ...(['IPINFO_TOKEN', 'IPAPI_KEY', 'IPQS_KEY', 'ABUSEIPDB_KEY'] as const).map((key) => c.env[key] || ''),
+    ];
+    const profileHash = Array.from(
+      new Uint8Array(
+        await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(profile))),
+      ),
+    )
+      .map((byte) => byte.toString(16).padStart(2, '0'))
+      .join('');
+    // Credential changes cannot reuse another data profile; no key is stored in the cache identifier.
+    const data = await cached(
+      `purity:${purityModel}:${profileHash}:${ip}`,
+      (result) =>
+        result.status === 'insufficient' ||
+        result.feeds.some((feed) => !feed.checked) ||
+        result.warnings.some((warning) => /unavailable|invalid|no valid|no .*returned/i.test(warning))
+          ? 60
+          : 900,
+      async () => calculatePurity(ip, await collectPurity(ip, c.env)),
+    );
+    return c.json(reply(data, adapter.name, data.sources));
   });
   app.get('/api/ping', (c) =>
     c.json(

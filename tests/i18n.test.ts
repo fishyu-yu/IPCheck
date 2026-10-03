@@ -15,4 +15,13 @@ describe('language selection and translations', () => {
     expect(translate('Example ISP', 'zh')).toBe('Example ISP');
     expect(translate('Not checked', 'en')).toBe('Not checked');
   });
+  it('localizes purity factors and distinguishes evidence confidence from risk', () => {
+    expect(translate('IP Purity', 'zh')).toBe('IP 纯净度');
+    expect(translate('High evidence confidence', 'zh')).toBe('证据可信度：高');
+    expect(translate('Recent malicious neighbors', 'zh')).toBe('近期恶意邻居');
+    expect(translate('No match in limited public threat feeds', 'zh')).toBe('有限公共威胁情报中未命中');
+    expect(translate('Insufficient evidence. A neutral baseline is not a clean verdict.', 'zh')).toContain(
+      '不代表',
+    );
+  });
 });

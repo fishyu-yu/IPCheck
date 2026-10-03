@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { GeoProvider, Env, ASNProvider } from '../../edge/core/contracts';
-import type { IPInfo, ASNInfo, IPType } from '../../src/types';
+import type { IPInfo, ASNInfo, IPType, NetworkCategory } from '../../src/types';
 import { fetchJson } from '../../edge/core/security';
 const optionalString = z
   .string()
@@ -65,6 +65,7 @@ export class IpInfoProvider implements GeoProvider {
         .optional(),
       is_mobile: z.boolean().optional(),
       is_hosting: z.boolean().optional(),
+      company: z.object({ name: optionalString, type: optionalString }).optional(),
     });
     const d = schema.parse(
       await fetchJson(`https://api.ipinfo.io/lookup/${encodeURIComponent(ip)}`, {
@@ -77,6 +78,12 @@ export class IpInfoProvider implements GeoProvider {
       business: 'Business',
       education: 'Education',
       government: 'Government',
+    };
+    const category = (value?: string): NetworkCategory => {
+      const normalized = value?.toLowerCase();
+      return ['isp', 'hosting', 'business', 'education', 'government'].includes(normalized || '')
+        ? (normalized as NetworkCategory)
+        : 'unknown';
     };
     // An ISP ASN alone does not establish a residential connection.
     const value: IPType = d.is_mobile
@@ -91,13 +98,19 @@ export class IpInfoProvider implements GeoProvider {
       city: d.geo?.city,
       postal: d.geo?.postal_code,
       timezone: d.geo?.timezone,
-      organization: d.as?.name,
+      organization: d.company?.name || d.as?.name,
       asnName: d.as?.name,
       asn: d.as ? Number(d.as.asn.slice(2)) : undefined,
       prefix: d.as?.route,
       latitude: d.geo?.latitude,
       longitude: d.geo?.longitude,
       hostingProvider: d.is_hosting ? d.as?.name : undefined,
+      asnType: d.as?.type
+        ? { type: category(d.as.type), source: 'IPinfo ASN classification', inferred: false }
+        : undefined,
+      companyType: d.company?.type
+        ? { type: category(d.company.type), source: 'IPinfo company classification', inferred: false }
+        : undefined,
       type: [{ value, source: this.name, confidence: null, detection: 'Provider Detection' }],
     };
   }

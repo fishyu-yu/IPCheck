@@ -37,6 +37,11 @@ export function translate(text: string, language: Locale = locale): string {
     [/^(.+) provider unavailable$/, (name) => `${translate(name, language)}数据源暂不可用`],
     [/^(.+) unavailable$/, (name) => `${name} 暂不可用`],
     [
+      /^(.+) unavailable or invalid; absence is not a negative finding(?: \(stale or missing update metadata\))?$/,
+      (name) => `${name} 暂不可用或格式无效；缺失不能视为未发现风险`,
+    ],
+    [/^Local name inference \((.+)\)$/, (source) => `本地名称推断（${source}）`],
+    [
       /^(\d+) resolvers observed\. Empty results do not prove absence of a leak\.$/,
       (n) => `观测到 ${n} 个解析器。结果为空不代表没有泄露。`,
     ],

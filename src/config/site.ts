@@ -26,7 +26,7 @@ export const navigation = [
     items: [
       ['/ip', 'IP Lookup', 'ip'],
       ['/asn', 'ASN Lookup', 'asn'],
-      ['/risk', 'Risk Analysis', 'risk'],
+      ['/risk', 'IP Purity', 'risk'],
     ],
   },
   {

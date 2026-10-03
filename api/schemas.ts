@@ -42,6 +42,8 @@ export const payloadSchemas = {
       prefix: text,
       reverseDns: text,
       hostingProvider: text,
+      asnType: ref('PurityTypeEvidence'),
+      companyType: ref('PurityTypeEvidence'),
       type: { type: 'array', items: ref('Evidence') },
       sources: strings,
       fieldSources: { type: 'object', additionalProperties: text },
@@ -105,6 +107,89 @@ export const payloadSchemas = {
       warnings: strings,
     },
     ['ip', 'score', 'level', 'signals', 'checked', 'total', 'partial'],
+  ),
+  PurityTypeEvidence: object(
+    {
+      type: { enum: ['isp', 'hosting', 'business', 'education', 'government', 'unknown'] },
+      source: text,
+      inferred: bool,
+    },
+    ['type', 'source', 'inferred'],
+  ),
+  PurityDimension: object(
+    {
+      key: { enum: ['asn', 'company', 'anonymity', 'abuse', 'neighborhood'] },
+      score: { type: 'integer', minimum: 0, maximum: 100 },
+      weight: { type: 'integer', minimum: 0, maximum: 100 },
+      observed: bool,
+      inferred: bool,
+      evidence: text,
+      sources: strings,
+    },
+    ['key', 'score', 'weight', 'observed', 'inferred', 'evidence', 'sources'],
+  ),
+  PurityFeedEvidence: object(
+    {
+      source: text,
+      url: { type: 'string', format: 'uri' },
+      checked: bool,
+      updatedAt: nullableText,
+      copyright: text,
+    },
+    ['source', 'url', 'checked', 'updatedAt'],
+  ),
+  PurityNeighborhood: object(
+    {
+      cidr: nullableText,
+      activityCidr: nullableText,
+      activitySource: nullableText,
+      activityKind: { enum: ['recent-c2', 'threat-list'] },
+      activeBadNeighbors: { type: ['integer', 'null'], minimum: 0 },
+      abuseDensity: { type: ['number', 'null'], minimum: 0, maximum: 1 },
+      scope: { enum: ['ipv4-/24', 'company-network', 'none'] },
+      source: text,
+    },
+    ['cidr', 'activeBadNeighbors', 'abuseDensity', 'scope', 'source'],
+  ),
+  PurityResult: object(
+    {
+      ip: text,
+      score: { type: 'integer', minimum: 0, maximum: 100 },
+      level: { enum: ['High purity', 'Moderate purity', 'Low purity', 'Insufficient evidence'] },
+      confidence: { enum: ['High', 'Medium', 'Low'] },
+      coverage: { type: 'integer', minimum: 0, maximum: 100 },
+      status: { enum: ['assessed', 'limited', 'insufficient'] },
+      model: text,
+      assessedAt: { type: 'string', format: 'date-time' },
+      dimensions: { type: 'array', minItems: 5, maxItems: 5, items: ref('PurityDimension') },
+      asnType: ref('PurityTypeEvidence'),
+      companyType: ref('PurityTypeEvidence'),
+      neighborhood: ref('PurityNeighborhood'),
+      feeds: { type: 'array', items: ref('PurityFeedEvidence') },
+      signals: { type: 'array', items: ref('RiskSignal') },
+      conflicts: strings,
+      sources: strings,
+      warnings: strings,
+    },
+    [
+      'ip',
+      'score',
+      'level',
+      'confidence',
+      'coverage',
+      'status',
+      'model',
+      'assessedAt',
+      'dimensions',
+      'asnType',
+      'companyType',
+      'neighborhood',
+      'feeds',
+      'signals',
+      'conflicts',
+      'sources',
+      'warnings',
+    ],
   ),
   PingResult: object(
     {
@@ -188,7 +273,7 @@ export const payloadSchemas = {
         traceroute: bool,
         dnsCollector: bool,
       }),
-      providers: object({ geo: bool, risk: bool, remoteProbe: bool }),
+      providers: object({ geo: bool, risk: bool, purity: bool, remoteProbe: bool }),
       rateLimit: text,
     },
     ['status', 'platform', 'capabilities', 'providers', 'rateLimit'],
@@ -212,6 +297,7 @@ export function payloadName(path: string, method: string) {
   if (path.startsWith('/api/ip')) return 'IPInfo';
   if (path.startsWith('/api/asn')) return 'ASNInfo';
   if (path.startsWith('/api/risk')) return 'RiskResult';
+  if (path.startsWith('/api/purity')) return 'PurityResult';
   if (path.startsWith('/api/dns-leak')) return 'DnsSession';
   if (path === '/api/dns' || path === '/api/reverse') return 'DNSResult';
   if (path === '/api/health') return 'Health';

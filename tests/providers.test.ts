@@ -34,6 +34,26 @@ describe('provider normalization and platform isolation', () => {
     );
     expect((await new IpInfoProvider('test').lookup('8.8.8.8')).type?.[0].value).toBe('Unknown');
   });
+  it('retains distinct provider ASN and company types for purity', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              as: { asn: 'AS1234', name: 'Transit telecom', type: 'isp' },
+              company: { name: 'Tenant hosting', type: 'hosting' },
+            }),
+          ),
+      ),
+    );
+    const result = await new IpInfoProvider('test').lookup('8.8.8.8');
+    expect(result.asnType).toMatchObject({ type: 'isp', inferred: false });
+    expect(result.companyType).toMatchObject({ type: 'hosting', inferred: false });
+    expect(result.asnName).toBe('Transit telecom');
+    expect(result.organization).toBe('Tenant hosting');
+    expect(result.type?.[0].value).toBe('Unknown');
+  });
   it('falls back after a provider failure and retains the warning', async () => {
     const result = await lookupIp('8.8.8.8', {}, [
       {

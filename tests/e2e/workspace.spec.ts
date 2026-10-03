@@ -8,7 +8,7 @@ test('overview, themes, tools and mobile layout are usable', async ({ page }) =>
   await expect(page.getByText('Not available locally')).toBeVisible();
   const nav = page.getByRole('navigation', { name: 'Main navigation' });
   await expect(page.locator('.sidebar')).toHaveCount(0);
-  await expect(nav.getByRole('link')).toHaveCount(4);
+  await expect(nav.getByRole('link')).toHaveCount(5);
   const positions = await nav
     .getByRole('link')
     .evaluateAll((links) => links.map((link) => link.getBoundingClientRect().top));

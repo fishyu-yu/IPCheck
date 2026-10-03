@@ -72,6 +72,7 @@ export function DeveloperPage() {
               'GET /api/ip/:ip': 'IP intelligence',
               'GET /api/asn/:asn': 'Autonomous system',
               'GET /api/risk/:ip': 'Risk evidence',
+              'GET /api/purity/:ip': 'Local IP purity assessment',
               'GET /api/dns?name=example.com&type=A': 'DNS records',
               'GET /api/reverse?ip=8.8.8.8': 'PTR lookup',
             }}
@@ -105,7 +106,12 @@ export function DeveloperPage() {
         </p>
         <p>
           {localize(
-            ' Risk is a local scoring model over provider evidence. A score of zero with partial coverage is not proof of safety. Unsupported tests report limitations, never invented measurements. ',
+            ' IP purity uses a local weighted model with explicit evidence coverage. Higher scores mean cleaner observed evidence; missing evidence remains neutral and does not prove safety. Unsupported tests report limitations, never invented measurements. ',
+          )}
+        </p>
+        <p>
+          {localize(
+            'Public threat lists are matched locally without sending the target IP to their publishers. Purity results are cached for up to 15 minutes; optional classification and risk services receive the queried IP.',
           )}
         </p>
       </Card>
