@@ -2,6 +2,16 @@
 export const zh: Record<string, string> = Object.fromEntries(
   `
 Unknown|未知
+Your location on the globe|你的 IP 在地球上的位置
+IP location|IP 所在位置
+Rotate globe left|向左旋转地球
+Rotate globe right|向右旋转地球
+Recenter globe|回到 IP 所在位置
+IP location marker on a globe|标有 IP 位置的地球
+Globe without a location marker|没有位置标记的地球
+Approximate location from IP data|根据 IP 数据估算的大致位置
+Location coordinates unavailable|暂无经纬度数据
+Static globe view|静态地球视图
 More tools|更多工具
 Query an IP address for a PTR record, or look up a domain using DNS-over-HTTPS.|选择 PTR 查询 IP 的反向解析记录，或通过 DNS-over-HTTPS 查询域名。
 UI design reference:|界面设计参考：

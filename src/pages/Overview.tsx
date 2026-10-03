@@ -17,6 +17,7 @@ import { LatencyChart } from '../components/LatencyChart';
 import { useLatency } from '../hooks/useLatency';
 import { statistics } from '../lib/statistics';
 import { PixelAddress } from '../components/PixelAddress';
+import { LocationGlobe } from '../components/LocationGlobe';
 export default function Overview() {
   const health = useHealth();
   const showRisk = health.data?.providers.risk === true;
@@ -43,6 +44,7 @@ export default function Overview() {
           </button>
         }
       />
+      <div className="overview-focus">
       <section className="ip-hero" aria-label={localize('YOUR PUBLIC IP')}>
         <div className="ip-hero-content">
           <div className="hero-label">
@@ -93,6 +95,8 @@ export default function Overview() {
           )}
         </div>
       </section>
+      <LocationGlobe ip={info?.ip} latitude={info?.latitude} longitude={info?.longitude} location={location} />
+      </div>
       {query.error && <Notice error>{localize(query.error.message)}</Notice>}
       <div className="overview-grid">
         <Card
