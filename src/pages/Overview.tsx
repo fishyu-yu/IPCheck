@@ -16,6 +16,7 @@ import { RiskPanel } from '../components/RiskPanel';
 import { LatencyChart } from '../components/LatencyChart';
 import { useLatency } from '../hooks/useLatency';
 import { statistics } from '../lib/statistics';
+import { PixelAddress } from '../components/PixelAddress';
 export default function Overview() {
   const health = useHealth();
   const showRisk = health.data?.providers.risk === true;
@@ -42,7 +43,7 @@ export default function Overview() {
           </button>
         }
       />
-      <section className="ip-hero">
+      <section className="ip-hero" aria-label={localize('YOUR PUBLIC IP')}>
         <div className="ip-hero-content">
           <div className="hero-label">
             <span className="live-dot" />
@@ -54,10 +55,11 @@ export default function Overview() {
             <Skeleton lines={1} />
           ) : (
             <div className="ip-line">
-              <strong className={!info?.ip ? 'ip-unavailable' : ''}>
-                {localize(info?.ip || 'Not available locally')}
-              </strong>
-              {info?.ip && <CopyButton text={info.ip} />}
+              {info?.ip ? (
+                <PixelAddress value={info.ip} />
+              ) : (
+                <strong className="ip-unavailable">{localize('Not available locally')}</strong>
+              )}
             </div>
           )}
           {info?.ip && (
@@ -82,6 +84,11 @@ export default function Overview() {
               <span>
                 {localize(info?.sources.join(' · ') || 'Connect through a supported edge deployment')}
               </span>
+            </div>
+          )}
+          {info?.ip && (
+            <div className="hero-copy">
+              <CopyButton text={info.ip} />
             </div>
           )}
         </div>

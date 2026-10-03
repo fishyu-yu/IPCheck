@@ -2142,3 +2142,196 @@ body {
     padding-inline: 10px;
   }
 }
+
+/* Center the address as a quiet pixel terminal inside the rounded workspace. */
+.ip-hero {
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  padding: 48px 32px 42px;
+  text-align: center;
+  border-color: color-mix(in srgb, var(--accent) 24%, var(--border));
+  background: radial-gradient(ellipse at 50% 45%, var(--glow), transparent 72%), var(--card);
+}
+.ip-hero::before {
+  display: block;
+  position: absolute;
+  inset: 0;
+  width: auto;
+  height: auto;
+  border: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 3px,
+    color-mix(in srgb, var(--accent) 3%, transparent) 3px 4px
+  );
+  pointer-events: none;
+}
+.ip-hero::after {
+  display: block;
+  position: absolute;
+  inset: 18px;
+  width: auto;
+  height: auto;
+  border: 0;
+  background:
+    linear-gradient(var(--accent), var(--accent)) left top / 14px 2px,
+    linear-gradient(var(--accent), var(--accent)) left top / 2px 14px,
+    linear-gradient(var(--accent), var(--accent)) right top / 14px 2px,
+    linear-gradient(var(--accent), var(--accent)) right top / 2px 14px,
+    linear-gradient(var(--accent), var(--accent)) left bottom / 14px 2px,
+    linear-gradient(var(--accent), var(--accent)) left bottom / 2px 14px,
+    linear-gradient(var(--accent), var(--accent)) right bottom / 14px 2px,
+    linear-gradient(var(--accent), var(--accent)) right bottom / 2px 14px;
+  background-repeat: no-repeat;
+  opacity: 0.35;
+  pointer-events: none;
+}
+.ip-hero-content {
+  width: 100%;
+}
+.ip-hero .hero-label,
+.ip-hero .ip-line,
+.ip-hero .ip-meta,
+.ip-hero .hero-source {
+  justify-content: center;
+}
+.ip-hero .hero-label {
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  font-size: 10px;
+}
+.ip-hero .ip-line {
+  margin: 30px 0 25px;
+}
+.ip-line > strong.pixel-address {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  font-size: clamp(32px, 4.8vw, 64px);
+  line-height: 1.4;
+  letter-spacing: 0;
+  color: var(--accent);
+  font-weight: 500;
+}
+.pixel-address-glyphs {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 0.16em;
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--accent) 20%, transparent));
+}
+.pixel-glyph {
+  display: block;
+  flex: 0 0 auto;
+  height: 1em;
+  fill: currentColor;
+  shape-rendering: crispEdges;
+  animation: pixel-type 1ms steps(1, end) both;
+  animation-delay: calc(var(--character) * 45ms);
+}
+.pixel-cursor {
+  width: 0.14em;
+  height: 1em;
+  background: currentColor;
+  opacity: 0.35;
+  animation: pixel-blink 650ms steps(1, end) 3;
+}
+.pixel-address-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: transparent;
+  user-select: text;
+  z-index: 2;
+  overflow-wrap: anywhere;
+}
+.pixel-address-text::selection {
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  color: var(--text);
+}
+.ip-line > strong.pixel-address.ipv6 {
+  font-size: clamp(17px, 2.2vw, 29px);
+}
+.ip-hero .hero-source {
+  margin-top: 16px;
+}
+.hero-copy {
+  position: absolute;
+  right: 30px;
+  top: 28px;
+}
+.hero-copy .icon-button {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--muted);
+}
+.hero-copy .icon-button:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+@keyframes pixel-type {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pixel-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+@media (max-width: 700px) {
+  .ip-hero {
+    min-height: 250px;
+    padding: 48px 20px 34px;
+  }
+  .ip-hero::after {
+    inset: 12px;
+  }
+  .hero-copy {
+    top: 15px;
+    right: 15px;
+  }
+  .ip-hero .hero-label {
+    font-size: 9px;
+    gap: 5px;
+    letter-spacing: 0.05em;
+  }
+  .hero-label .badge {
+    margin-left: 0;
+  }
+  .ip-line > strong.pixel-address {
+    font-size: clamp(21px, 5.3vw, 36px);
+  }
+  .ip-line > strong.pixel-address.ipv6 {
+    font-size: 17px;
+  }
+  .ip-hero .ip-meta {
+    gap: 8px 14px;
+    font-size: 10px;
+  }
+  .ip-hero .hero-source {
+    gap: 6px;
+    font-size: 9px;
+  }
+  .ip-line > strong.ip-unavailable {
+    font-size: 24px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pixel-glyph,
+  .pixel-cursor {
+    animation: none;
+  }
+}
