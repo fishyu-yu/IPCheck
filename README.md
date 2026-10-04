@@ -142,6 +142,8 @@ pnpm exec wrangler secret put ABUSEIPDB_KEY
 | `IPQS_KEY`                                   | IPQualityScore 风险证据                | 可选                         |
 | `ABUSEIPDB_KEY`                              | AbuseIPDB 滥用证据                     | 可选                         |
 | `IPAPI_KEY`                                  | ASN / Company 类型、代理与网段滥用比例 | 可选，密钥只存服务端         |
+| `PROXYCHECK_KEY`                             | 自有 Proxycheck v3 账户检测特征        | 可选，密钥只存服务端         |
+| `PURITY_IPQUERY`                             | 无需密钥的 VPN / proxy / Tor / DC 特征 | 默认启用；`off` 关闭         |
 | `PURITY_PUBLIC_FEEDS`                        | Tor / Feodo / Spamhaus / CINS 公共情报 | 默认启用；`off` 关闭         |
 | `GEO_FREE_PROVIDER`                          | 是否使用 ipwho.is 免费数据源           | `on`；`off` 关闭             |
 | `DOH_URLS`                                   | 逗号分隔的 HTTPS JSON DoH 地址         | 未配置时使用内置来源         |
@@ -159,6 +161,8 @@ pnpm exec wrangler secret put ABUSEIPDB_KEY
 ## 检测结果如何理解
 
 IP 纯净度使用独立本地模型：ASN 15%、Company 20%、匿名网络 30%、近期滥用 25%、邻居风险 10%。分数越高表示已观测证据越干净；类型缺失时保守推断并标注，完全无证据时返回 50 分中性基线和“证据不足”，每项都有明确结果。邻居项统计近期恶意地址，不虚构普通在线率。模型、数据源、缓存与可选配置详见 [纯净度说明](docs/ip-purity.md)。
+
+v2 默认接入官方允许免费商用的 IPQuery 检测特征，结合本地 VPN / Google Cloud 双栈前缀与公共威胁名单；供应商总分不替代本地计算。页面保留各来源原始检测值、未知项、冲突、时效和处理建议。断网时使用有效的随代码前缀快照，过期时降为未知。发布前可用 `pnpm purity:update-data` 刷新快照，构建后用 `node scripts/purity-smoke.mjs` 验收默认真实来源。
 
 风险模型位于 `src/config/risk.config.ts`：VPN 20、代理 20、Tor 35、数据中心 10、机器人 15、滥用 30、垃圾邮件 15、黑名单 25、匿名网络 10；托管网络权重为 0，避免重复计分。
 

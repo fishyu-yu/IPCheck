@@ -87,6 +87,10 @@ export interface PurityFeedEvidence {
   url: string;
   checked: boolean;
   updatedAt: string | null;
+  fetchedAt?: string;
+  expiresAt?: string;
+  origin?: 'live' | 'snapshot';
+  status?: 'available' | 'unavailable' | 'stale' | 'unsupported';
   copyright?: string;
 }
 export interface PurityNeighborhood {
@@ -114,12 +118,15 @@ export interface PurityDimension {
   weight: number;
   observed: boolean;
   inferred: boolean;
+  reliability: number;
   evidence: string;
   sources: string[];
 }
 export interface PurityResult {
   ip: string;
   score: number;
+  scoreRange: { min: number; max: number };
+  recommendations: string[];
   level: 'High purity' | 'Moderate purity' | 'Low purity' | 'Insufficient evidence';
   confidence: 'High' | 'Medium' | 'Low';
   coverage: number;

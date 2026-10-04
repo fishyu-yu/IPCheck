@@ -2469,6 +2469,22 @@ body {
 
 /* Local IP purity assessment */
 .purity-panel { min-width: 0; }
+.purity-range { font-size: 12px; color: var(--muted); }
+.purity-signals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.purity-signal { min-width: 0; border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.purity-signal-heading { display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; }
+.purity-signal-findings { display: grid; gap: 14px; margin-top: 14px; }
+.purity-signal-finding + .purity-signal-finding { border-top: 1px solid var(--border); padding-top: 14px; }
+.purity-signal-value .badge { white-space: normal; overflow-wrap: anywhere; }
+.purity-signal-meta, .purity-assessment-meta { display: grid; gap: 7px; margin: 11px 0 0; font-size: 11px; color: var(--muted); }
+.purity-signal-meta div, .purity-assessment-meta div { display: grid; grid-template-columns: 85px minmax(0, 1fr); gap: 12px; }
+.purity-signal-meta dd, .purity-assessment-meta dd { margin: 0; overflow-wrap: anywhere; color: var(--subtle); }
+.purity-assessment-meta { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--border); }
+.purity-recommendations { padding-left: 18px; color: var(--subtle); font-size: 12px; line-height: 1.7; }
+.purity-recommendations li + li { margin-top: 8px; }
+.purity-license { margin-top: 10px; font-size: 11px; color: var(--muted); }
+.purity-license summary { cursor: pointer; }
+.purity-license pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; margin: 10px 0 0; }
 .purity-summary { display: flex; align-items: center; gap: 22px; margin: 22px 0; }
 .purity-score {
   --score-color: var(--yellow);
@@ -2518,6 +2534,7 @@ body {
 .purity-feed a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; }
 .purity-feed small { display: block; margin-top: 5px; color: var(--muted); overflow-wrap: anywhere; }
 @media (max-width: 700px) {
+  .purity-signals { grid-template-columns: 1fr; }
   .purity-types { grid-template-columns: 1fr; }
   .purity-summary { gap: 15px; }
   .purity-score { flex-basis: 95px; width: 95px; height: 95px; }

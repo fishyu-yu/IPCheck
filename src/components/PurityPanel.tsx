@@ -1,8 +1,16 @@
-import type { CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { ArrowRight, RefreshCw, ShieldCheck } from 'lucide-react';
+import ipaddr from 'ipaddr.js';
 import { Link } from 'react-router-dom';
 import { locale, localize } from '../config/i18n';
-import type { NetworkCategory, PurityDimensionKey, PurityResult, PurityTypeEvidence } from '../types';
+import type {
+  NetworkCategory,
+  PurityDimensionKey,
+  PurityResult,
+  PurityTypeEvidence,
+  RiskKey,
+  RiskSignal,
+} from '../types';
 import { Badge, Card, Notice } from './ui';
 
 const dimensions: Record<PurityDimensionKey, string> = {
@@ -26,9 +34,114 @@ const confidenceLabels = {
   Low: 'Low evidence confidence',
 };
 const percent = (value: number) => `${Math.round(Math.min(1, Math.max(0, value)) * 100)}%`;
-function timestamp(value: string | null) {
+const signalLabels: Record<RiskKey, string> = {
+  vpn: 'VPN',
+  proxy: 'Proxy',
+  tor: 'Tor',
+  hosting: 'Hosting',
+  datacenter: 'Datacenter',
+  abuse: 'Abuse',
+  bot: 'Bot',
+  spam: 'Spam',
+  blacklist: 'Blacklist',
+  anonymous: 'Anonymous network',
+};
+function timestamp(value?: string | null) {
   if (!value || !Number.isFinite(Date.parse(value))) return localize('Timestamp not supplied');
   return new Date(value).toLocaleString(locale === 'zh' ? 'zh-CN' : 'en-US');
+}
+function matchesIp(actual: string, requested?: string | null) {
+  if (!requested) return true;
+  try {
+    return ipaddr.parse(actual).toString() === ipaddr.parse(requested.trim()).toString();
+  } catch {
+    return actual === requested.trim();
+  }
+}
+function validSignalValue(signal: RiskSignal) {
+  return (
+    typeof signal.value === 'boolean' || (typeof signal.value === 'number' && Number.isFinite(signal.value))
+  );
+}
+function SignalEvidence({ data }: { data?: PurityResult }) {
+  return (
+    <>
+      <h3 className="purity-section-title">{localize('Individual source findings')}</h3>
+      <p className="helper">
+        {localize(
+          'Negative findings apply only to the named source and its coverage. Unchecked signals remain unknown; inferred findings are not live measurements.',
+        )}
+      </p>
+      <div className="purity-signals">
+        {(Object.keys(signalLabels) as RiskKey[]).map((key) => {
+          const findings = data?.signals.filter((signal) => signal.key === key) || [];
+          const observed = findings.filter(validSignalValue);
+          const conflicting =
+            data?.conflicts.includes(key) || new Set(observed.map((signal) => Number(signal.value) > 0)).size > 1;
+          return (
+            <section
+              className="purity-signal"
+              key={key}
+              data-signal-key={key}
+              aria-label={localize(signalLabels[key])}
+            >
+              <div className="purity-signal-heading">
+                <strong>{localize(signalLabels[key])}</strong>
+                {conflicting && <Badge tone="yellow">{localize('Conflicting findings')}</Badge>}
+              </div>
+              <div className="purity-signal-findings">
+                {(findings.length ? findings : [null]).map((finding, index) => {
+                  const checked = finding && validSignalValue(finding);
+                  const inferred = finding?.detection === 'Estimated / Unsupported';
+                  const value = checked ? finding.value : null;
+                  const positive = value !== null && Number(value) > 0;
+                  const rawValue = typeof value === 'boolean' ? String(value) : value;
+                  return (
+                    <div className="purity-signal-finding" key={index}>
+                      <div className="purity-signal-value">
+                        <Badge tone={!checked ? 'muted' : positive ? 'yellow' : 'blue'}>
+                          {value === null
+                            ? `${localize('Unknown')} / ${localize('Not checked')}`
+                            : typeof value === 'number'
+                              ? `${rawValue} · ${percent(value)} ${localize('Evidence strength')}`
+                              : `${rawValue} · ${localize(positive ? (inferred ? 'Inferred finding' : 'Detected') : 'Not detected in this source')}`}
+                        </Badge>
+                      </div>
+                      <dl className="purity-signal-meta">
+                        <div>
+                          <dt>{localize('Source')}</dt>
+                          <dd>{localize(finding?.source || 'Source unavailable')}</dd>
+                        </div>
+                        <div>
+                          <dt>{localize('confidence')}</dt>
+                          <dd>
+                            {finding?.confidence !== null &&
+                            finding?.confidence !== undefined &&
+                            Number.isFinite(finding.confidence)
+                              ? percent(finding.confidence)
+                              : localize('Unknown')}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>{localize('Detection method')}</dt>
+                          <dd>{localize(finding?.detection || 'Not checked')}</dd>
+                        </div>
+                      </dl>
+                      {checked && !positive && (
+                        <p className="helper">
+                          {localize('This source reported no matching signal within its coverage.')}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </>
+  );
 }
 function NetworkType({ label, evidence }: { label: string; evidence: PurityTypeEvidence }) {
   return (
@@ -49,7 +162,7 @@ function NetworkType({ label, evidence }: { label: string; evidence: PurityTypeE
   );
 }
 export function PurityPanel({
-  data,
+  data: inputData,
   ip,
   compact = false,
   loading = false,
@@ -63,8 +176,14 @@ export function PurityPanel({
   error?: Error | null;
   onRetry?: () => void;
 }) {
-  const valid = data && Number.isFinite(data.score);
-  const unavailable = !valid;
+  const [currentTime, setCurrentTime] = useState(() => new Date().toISOString());
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentTime(new Date().toISOString()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
+  const data =
+    inputData && Number.isFinite(inputData.score) && matchesIp(inputData.ip, ip) ? inputData : undefined;
+  const unavailable = !data;
   const isThreatList = data?.neighborhood.activityKind === 'threat-list';
   return (
     <Card
@@ -79,7 +198,7 @@ export function PurityPanel({
             {localize(
               loading
                 ? 'Assessing IP purity…'
-                : error || data
+                : error || inputData
                   ? 'Purity assessment unavailable'
                   : 'A public IP is needed',
             )}
@@ -90,7 +209,7 @@ export function PurityPanel({
                 ? 'Checking network types, threat feeds, and neighborhood evidence.'
                 : error
                   ? error.message
-                  : data
+                  : inputData
                     ? 'The service returned an invalid assessment. Try again.'
                     : 'Look up a public IPv4 or IPv6 address to assess its purity.',
             )}
@@ -141,6 +260,16 @@ export function PurityPanel({
                 {localize('Evidence coverage')}:{' '}
                 {percent((Number.isFinite(data.coverage) ? data.coverage : 0) / 100)}
               </small>
+              {!compact && (
+                <p className="purity-range">
+                  {localize('Evidence score range')}:{' '}
+                  {data.scoreRange &&
+                  Number.isFinite(data.scoreRange.min) &&
+                  Number.isFinite(data.scoreRange.max)
+                    ? `${Math.round(data.scoreRange.min)}–${Math.round(data.scoreRange.max)} / 100`
+                    : localize('Not supplied')}
+                </p>
+              )}
             </div>
           </div>
           {loading && (
@@ -203,6 +332,12 @@ export function PurityPanel({
                     <div className="purity-factor-meta">
                       <span>
                         {localize('Weight')}: {percent(factor.weight / 100)}
+                      </span>
+                      <span>
+                        {localize('Evidence reliability')}:{' '}
+                        {Number.isFinite(factor.reliability)
+                          ? percent(factor.reliability)
+                          : localize('Not supplied')}
                       </span>
                       <Badge tone={factor.observed ? 'blue' : 'muted'}>
                         {localize(
@@ -280,20 +415,56 @@ export function PurityPanel({
               <h3 className="purity-section-title">{localize('Evidence sources')}</h3>
               {data.feeds.length ? (
                 <div className="purity-feeds">
-                  {data.feeds.map((feed) => (
-                    <div key={feed.source} className="purity-feed">
+                  {data.feeds.map((feed, index) => (
+                    <div
+                      key={`${feed.source}:${index}`}
+                      className="purity-feed"
+                      data-feed-status={feed.status || (feed.checked ? 'available' : 'unavailable')}
+                    >
                       <div>
                         <a href={feed.url} target="_blank" rel="noreferrer">
                           {localize(feed.source)}
                         </a>
                         <Badge tone={feed.checked ? 'blue' : 'muted'}>
-                          {localize(feed.checked ? 'Checked' : 'Feed unavailable')}
+                          {localize(
+                            feed.status === 'stale'
+                              ? 'Feed stale'
+                              : feed.status === 'unsupported'
+                                ? 'IP family unsupported'
+                                : feed.checked
+                                  ? 'Checked'
+                                  : 'Feed unavailable',
+                          )}
                         </Badge>
                       </div>
                       <small>
-                        {localize('Feed timestamp')}: {timestamp(feed.updatedAt)}
+                        {localize('Feed published at')}: {timestamp(feed.updatedAt)}
                       </small>
-                      {feed.copyright && <small>{feed.copyright}</small>}
+                      <small>
+                        {localize('Feed fetched at')}: {timestamp(feed.fetchedAt)}
+                      </small>
+                      <small>
+                        {localize('Feed expires at')}: {timestamp(feed.expiresAt)}
+                      </small>
+                      <small>
+                        {localize('Data origin')}:{' '}
+                        {localize(
+                          feed.origin === 'snapshot'
+                            ? 'Bundled offline snapshot'
+                            : feed.origin === 'live'
+                              ? 'Live download'
+                              : 'Origin not supplied',
+                        )}
+                      </small>
+                      {feed.copyright &&
+                        (feed.copyright.length > 240 ? (
+                          <details className="purity-license">
+                            <summary>{localize('Source license and attribution')}</summary>
+                            <pre>{feed.copyright}</pre>
+                          </details>
+                        ) : (
+                          <small>{feed.copyright}</small>
+                        ))}
                     </div>
                   ))}
                 </div>
@@ -320,14 +491,44 @@ export function PurityPanel({
                   {localize(warning)}
                 </p>
               ))}
-              <p className="helper">
-                {localize('Assessment model')}: {data.model} · {localize('Assessed at')}:{' '}
-                {timestamp(data.assessedAt)}
-              </p>
             </>
           )}
         </>
       )}
+      {!compact && (
+        <>
+          <SignalEvidence data={data} />
+          <h3 className="purity-section-title">{localize('Recommended next steps')}</h3>
+          <ul className="purity-recommendations">
+            {(data?.recommendations?.length
+              ? data.recommendations
+              : [
+                  data
+                    ? 'Review source coverage and freshness before relying on this assessment.'
+                    : 'Query a public IP or retry the assessment to obtain evidence.',
+                ]
+            ).map((recommendation, index) => (
+              <li key={index}>{localize(recommendation)}</li>
+            ))}
+          </ul>
+        </>
+      )}
+      <dl className="purity-assessment-meta">
+        <div>
+          <dt>{localize('Assessment model')}</dt>
+          <dd>{data?.model || localize('Not assessed')}</dd>
+        </div>
+        <div>
+          <dt>{localize('Assessed at')}</dt>
+          <dd>{timestamp(data?.assessedAt)}</dd>
+        </div>
+        <div>
+          <dt>{localize('Current time')}</dt>
+          <dd>
+            <time dateTime={currentTime}>{timestamp(currentTime)}</time>
+          </dd>
+        </div>
+      </dl>
       {compact && (
         <Link className="card-link" to={ip ? `/risk?ip=${encodeURIComponent(ip)}` : '/risk'}>
           {localize('Inspect purity evidence')}

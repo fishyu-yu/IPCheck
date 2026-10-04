@@ -2,6 +2,14 @@
 export const zh: Record<string, string> = Object.fromEntries(
   `
 Unknown|未知
+ASN/company types use conservative local name inference; provider classification is unavailable|ASN 与 Company 类型采用保守的本地名称推断，数据源未提供确定分类。
+VPN prefix membership is inferred from a public network list; it does not establish current use or abuse.|VPN 前缀匹配来自公开网络名单，仅是推断，不能证明当前使用 VPN 或存在滥用。
+Proxycheck unavailable or quota exhausted; checks remain unknown.|Proxycheck 暂不可用或额度耗尽，检测结果保持未知。
+Proxycheck positive detections have stale or invalid observation times; checks remain unknown.|Proxycheck 正向检测的观测时间已过期或无效，相关检测保持未知。
+Proxycheck returned a quota or account warning; some checks may be limited.|Proxycheck 返回额度或账户提示，部分检测可能受限。
+Local network classification unavailable|本地网络分类暂不可用。
+IPQuery unavailable or invalid; checks remain unknown.|IPQuery 暂不可用或结果无效，相关检测保持未知。
+IPQuery did not return every supported flag; omitted checks remain unknown.|IPQuery 未返回所有支持的标记，缺失检测项保持未知。
 Your location on the globe|你的 IP 在地球上的位置
 IP location|IP 所在位置
 Rotate globe left|向左旋转地球
@@ -627,6 +635,39 @@ CINS Army threat list|CINS Army 威胁名单
 CINS neighbors appear in its current published threat list. Individual event times are not supplied. This does not measure general traffic or online activity and does not prove this IP is malicious.|CINS 邻居指当前发布的威胁名单中的地址，不提供单个事件的时间。该数量不表示普通流量或在线活跃度，也不能证明此 IP 恶意。
 Checking network types, threat feeds, and neighborhood evidence.|正在查询网络类型、威胁情报与邻居证据。
 Network types, anonymity, abuse evidence, and neighborhood threats in one transparent local model.|结合网络类型、匿名特征、滥用记录与邻居威胁，以透明的本地模型评估。
+Individual source findings|逐项来源证据
+Negative findings apply only to the named source and its coverage. Unchecked signals remain unknown; inferred findings are not live measurements.|阴性结果仅适用于该数据源及其覆盖范围。未检测项保持未知，推断结果不属于实时实测。
+Conflicting findings|来源结论冲突
+Evidence strength|证据强度
+Inferred finding|推断发现
+Not detected in this source|该来源未检测到
+Detection method|检测方式
+This source reported no matching signal within its coverage.|该来源在自身覆盖范围内未发现匹配信号。
+Evidence score range|证据评分区间
+Not supplied|未提供
+Feed published at|情报发布时间
+Feed fetched at|情报获取时间
+Feed expires at|情报有效期至
+Data origin|数据来源方式
+Bundled offline snapshot|内置离线快照
+Live download|实时下载
+Origin not supplied|未提供来源方式
+Feed stale|情报已过期
+IP family unsupported|未覆盖当前 IP 地址族
+Source license and attribution|来源许可与署名
+Recommended next steps|建议下一步
+Review source coverage and freshness before relying on this assessment.|使用评估结果前，请检查证据覆盖范围和时效。
+Query a public IP or retry the assessment to obtain evidence.|查询公网 IP 或重试评估以获取证据。
+Not assessed|尚未评估
+Current time|当前时间
+Anonymous network|匿名网络
+Evidence reliability|证据可靠性
+Investigate direct abuse findings before relying on this address.|使用该地址前，请先核查直接滥用证据。
+Anonymity evidence can affect service acceptance; review the individual detections.|匿名网络证据可能影响服务接受程度，请逐项查看检测结果。
+This address has hosting context; legitimate server use is compatible with this result.|该地址具有托管网络背景，这一结果也适用于合法服务器用途。
+Neighbor findings describe the surrounding network and do not establish abuse by this IP.|邻居证据描述周边网段，不能据此认定该 IP 存在滥用。
+More independent reputation evidence is needed for a stronger conclusion.|需要更多独立信誉证据，才能得出更可靠的结论。
+Checked sources show no adverse evidence; reassess when the address or network changes.|已检测来源未显示不利证据，地址或网络变化后请重新评估。
 `
     .trim()
     .split('\n')

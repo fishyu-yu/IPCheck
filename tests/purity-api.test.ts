@@ -3,7 +3,7 @@ import { createApp } from '../api/app';
 import { localAdapter } from '../edge/local/adapter';
 
 const app = createApp(localAdapter());
-const offline = { GEO_FREE_PROVIDER: 'off', PURITY_PUBLIC_FEEDS: 'off' };
+const offline = { GEO_FREE_PROVIDER: 'off', PURITY_PUBLIC_FEEDS: 'off', PURITY_IPQUERY: 'off' };
 
 describe('production purity API contract', () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -52,5 +52,60 @@ describe('production purity API contract', () => {
     );
     expect(document.components.schemas.PurityResult.properties.score.type).toBe('integer');
     expect(document.components.schemas.PurityResult.required).toContain('neighborhood');
+  });
+  it('provides default keyless anonymity evidence while preserving local scoring', async () => {
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            ip: '8.8.8.12',
+            risk: {
+              is_vpn: false,
+              is_proxy: false,
+              is_tor: false,
+              is_datacenter: false,
+              risk_score: 100,
+            },
+          }),
+        ),
+    );
+    vi.stubGlobal('fetch', fetch);
+    const result = await (
+      await app.request('/api/purity/8.8.8.12', {}, { ...offline, PURITY_IPQUERY: 'on' })
+    ).json();
+    expect(result.success).toBe(true);
+    expect(result.data.model).toBe('local-purity-v2');
+    expect(
+      result.data.signals.filter((signal: { source: string }) => signal.source === 'IPQuery'),
+    ).toHaveLength(4);
+    expect(result.data.score).toBeGreaterThan(50);
+    expect(result.data.coverage).toBeGreaterThanOrEqual(30);
+    expect(result.data.scoreRange.min).toBeLessThanOrEqual(result.data.score);
+    expect(result.data.recommendations.length).toBeGreaterThan(0);
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+  it('merges equivalent IPv6 requests before gathering provider data', async () => {
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            ip: '2606:4700:4700::1200',
+            risk: {
+              is_vpn: false,
+              is_proxy: false,
+              is_tor: false,
+              is_datacenter: false,
+            },
+          }),
+        ),
+    );
+    vi.stubGlobal('fetch', fetch);
+    const responses = await Promise.all(
+      ['2606:4700:4700::1200', '2606:4700:4700:0:0:0:0:1200'].map((ip) =>
+        app.request('/api/purity/' + encodeURIComponent(ip), {}, { ...offline, PURITY_IPQUERY: 'on' }),
+      ),
+    );
+    for (const response of responses) expect((await response.json()).data.ip).toBe('2606:4700:4700::1200');
+    expect(fetch).toHaveBeenCalledTimes(1);
   });
 });

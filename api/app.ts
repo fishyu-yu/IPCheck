@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import ipaddr from 'ipaddr.js';
 import { z } from 'zod';
 import type { Env, PlatformAdapter } from '../edge/core/contracts';
 import {
@@ -15,6 +16,7 @@ import { acquireProbe, rateLimit } from '../edge/core/ratelimit';
 import { currentIp, lookupIp } from './ip/service';
 import { riskLookup } from './risk/providers';
 import { collectPurity } from './purity/providers';
+import { coalesced } from './purity/runtime';
 import { calculatePurity } from '../src/lib/purity';
 import { purityModel } from '../src/config/purity.config';
 import { RipeASNProvider } from './lookup/providers';
@@ -110,6 +112,18 @@ export function createApp(adapter: PlatformAdapter) {
             c.env.RATE_QUERY && c.env.RATE_PROBE
               ? 'Platform bindings'
               : 'Per-isolate fallback; production WAF rate rules required',
+          purity: {
+            model: purityModel,
+            publicFeeds: c.env.PURITY_PUBLIC_FEEDS !== 'off',
+            localNetworkSnapshots: true,
+            enrichment: {
+              ipquery: c.env.PURITY_IPQUERY !== 'off',
+              ipapi: !!c.env.IPAPI_KEY,
+              proxycheck: !!c.env.PROXYCHECK_KEY,
+              ipqs: !!c.env.IPQS_KEY,
+              abuseipdb: !!c.env.ABUSEIPDB_KEY,
+            },
+          },
         },
         adapter.name,
       ),
@@ -151,12 +165,16 @@ export function createApp(adapter: PlatformAdapter) {
     return c.json(reply(d, adapter.name, d.sources));
   });
   app.get('/api/purity/:ip', async (c) => {
-    const ip = ipSchema.parse(c.req.param('ip'));
-    if (!publicIp(ip)) throw new ApiError('BLOCKED_TARGET', 'Purity lookup requires a public address');
+    const target = ipSchema.parse(c.req.param('ip'));
+    if (!publicIp(target)) throw new ApiError('BLOCKED_TARGET', 'Purity lookup requires a public address');
+    const ip = ipaddr.parse(target).toString();
     const profile = [
       c.env.GEO_FREE_PROVIDER === 'off' ? 'no-free-geo' : 'free-geo',
       c.env.PURITY_PUBLIC_FEEDS === 'off' ? 'no-feeds' : 'feeds',
-      ...(['IPINFO_TOKEN', 'IPAPI_KEY', 'IPQS_KEY', 'ABUSEIPDB_KEY'] as const).map((key) => c.env[key] || ''),
+      c.env.PURITY_IPQUERY === 'off' ? 'no-ipquery' : 'ipquery',
+      ...(['IPINFO_TOKEN', 'IPAPI_KEY', 'PROXYCHECK_KEY', 'IPQS_KEY', 'ABUSEIPDB_KEY'] as const).map(
+        (key) => c.env[key] || '',
+      ),
     ];
     const profileHash = Array.from(
       new Uint8Array(
@@ -166,15 +184,18 @@ export function createApp(adapter: PlatformAdapter) {
       .map((byte) => byte.toString(16).padStart(2, '0'))
       .join('');
     // Credential changes cannot reuse another data profile; no key is stored in the cache identifier.
-    const data = await cached(
-      `purity:${purityModel}:${profileHash}:${ip}`,
-      (result) =>
-        result.status === 'insufficient' ||
-        result.feeds.some((feed) => !feed.checked) ||
-        result.warnings.some((warning) => /unavailable|invalid|no valid|no .*returned/i.test(warning))
-          ? 60
-          : 900,
-      async () => calculatePurity(ip, await collectPurity(ip, c.env)),
+    const key = `purity:${purityModel}:${profileHash}:${ip}`;
+    const data = await coalesced(key, () =>
+      cached(
+        key,
+        (result) =>
+          result.status !== 'assessed' ||
+          result.feeds.some((feed) => !feed.checked) ||
+          result.warnings.some((warning) => /unavailable|invalid|no valid|no .*returned/i.test(warning))
+            ? 60
+            : 900,
+        async () => calculatePurity(ip, await collectPurity(ip, c.env)),
+      ),
     );
     return c.json(reply(data, adapter.name, data.sources));
   });

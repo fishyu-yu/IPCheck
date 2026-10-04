@@ -124,9 +124,10 @@ export const payloadSchemas = {
       observed: bool,
       inferred: bool,
       evidence: text,
+      reliability: { type: 'number', minimum: 0, maximum: 1 },
       sources: strings,
     },
-    ['key', 'score', 'weight', 'observed', 'inferred', 'evidence', 'sources'],
+    ['key', 'score', 'weight', 'observed', 'inferred', 'reliability', 'evidence', 'sources'],
   ),
   PurityFeedEvidence: object(
     {
@@ -134,6 +135,10 @@ export const payloadSchemas = {
       url: { type: 'string', format: 'uri' },
       checked: bool,
       updatedAt: nullableText,
+      fetchedAt: { type: 'string', format: 'date-time' },
+      expiresAt: { type: 'string', format: 'date-time' },
+      origin: { enum: ['live', 'snapshot'] },
+      status: { enum: ['available', 'unavailable', 'stale', 'unsupported'] },
       copyright: text,
     },
     ['source', 'url', 'checked', 'updatedAt'],
@@ -155,6 +160,14 @@ export const payloadSchemas = {
     {
       ip: text,
       score: { type: 'integer', minimum: 0, maximum: 100 },
+      scoreRange: object(
+        {
+          min: { type: 'integer', minimum: 0, maximum: 100 },
+          max: { type: 'integer', minimum: 0, maximum: 100 },
+        },
+        ['min', 'max'],
+      ),
+      recommendations: strings,
       level: { enum: ['High purity', 'Moderate purity', 'Low purity', 'Insufficient evidence'] },
       confidence: { enum: ['High', 'Medium', 'Low'] },
       coverage: { type: 'integer', minimum: 0, maximum: 100 },
@@ -174,6 +187,8 @@ export const payloadSchemas = {
     [
       'ip',
       'score',
+      'scoreRange',
+      'recommendations',
       'level',
       'confidence',
       'coverage',
@@ -274,6 +289,12 @@ export const payloadSchemas = {
         dnsCollector: bool,
       }),
       providers: object({ geo: bool, risk: bool, purity: bool, remoteProbe: bool }),
+      purity: object({
+        model: text,
+        publicFeeds: bool,
+        localNetworkSnapshots: bool,
+        enrichment: object({ ipquery: bool, ipapi: bool, proxycheck: bool, ipqs: bool, abuseipdb: bool }),
+      }),
       rateLimit: text,
     },
     ['status', 'platform', 'capabilities', 'providers', 'rateLimit'],

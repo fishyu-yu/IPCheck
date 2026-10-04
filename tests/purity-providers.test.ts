@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import ipaddr from 'ipaddr.js';
 import type { Env } from '../edge/core/contracts';
+
+const enrichment = vi.hoisted(() => ({ network: vi.fn(), ipquery: vi.fn() }));
+vi.mock('../api/purity/network-feeds', () => ({ collectNetworkPurity: enrichment.network }));
+vi.mock('../api/purity/ipquery', () => ({ ipqueryLookup: enrichment.ipquery }));
 
 const copyright = '© 2026 The Spamhaus Project';
 const timestamp = Math.floor(Date.now() / 1000);
@@ -65,7 +70,11 @@ async function collect(ip = '8.8.8.8', env: Env = { GEO_FREE_PROVIDER: 'off' }) 
 }
 
 describe('production purity evidence gathering', () => {
-  beforeEach(() => vi.resetModules());
+  beforeEach(() => {
+    vi.resetModules();
+    enrichment.network.mockReset().mockResolvedValue({ signals: [], feeds: [], warnings: [] });
+    enrichment.ipquery.mockReset().mockResolvedValue({ signals: [], feeds: [], warnings: [] });
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();
@@ -74,13 +83,15 @@ describe('production purity evidence gathering', () => {
   it('preserves Spamhaus JSONL copyright/date and performs narrow negative checks', async () => {
     const mock = fixtures();
     const result = await collect();
-    expect(result.feeds).toContainEqual({
-      source: 'Spamhaus Project DROP',
-      url: 'https://www.spamhaus.org/drop/drop_v4.json',
-      checked: true,
-      updatedAt: new Date(timestamp * 1000).toISOString(),
-      copyright,
-    });
+    expect(result.feeds).toContainEqual(
+      expect.objectContaining({
+        source: 'Spamhaus Project DROP',
+        url: 'https://www.spamhaus.org/drop/drop_v4.json',
+        checked: true,
+        updatedAt: new Date(timestamp * 1000).toISOString(),
+        copyright,
+      }),
+    );
     expect(result.signals).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ key: 'blacklist', value: false, source: 'Spamhaus Project DROP' }),
@@ -143,6 +154,7 @@ describe('production purity evidence gathering', () => {
     { drop4: '<html>error</html>' },
     { drop4: JSON.stringify({ cidr: '8.8.8.0/24' }) },
     { drop4: drop(['2606:4700::/32']) },
+    { drop4: drop([]) },
   ])('rejects malformed, metadata-free and wrong-family DROP feeds', async (override) => {
     fixtures(override);
     const result = await collect();
@@ -445,5 +457,384 @@ describe('production purity evidence gathering', () => {
       'Purity assessment requires a public unicast address',
     );
     expect(mock).not.toHaveBeenCalled();
+  });
+
+  it('uses prebuilt membership, neighbor and CIDR indexes for warm 15,000-address feeds', async () => {
+    const addresses = [
+      '8.8.8.8',
+      '8.8.8.9',
+      ...Array.from({ length: 14998 }, (_, index) => `9.9.${Math.floor(index / 256)}.${index % 256}`),
+    ];
+    const mock = fixtures({
+      feodo: new Error('offline'),
+      cins: new Response(addresses.join('\n'), {
+        headers: { 'Last-Modified': new Date().toUTCString() },
+      }),
+    });
+    expect((await collect()).neighborhood?.activeBadNeighbors).toBe(1);
+    const parse = vi.spyOn(ipaddr, 'parse');
+    const cidr = vi.spyOn(ipaddr, 'parseCIDR');
+    for (let index = 10; index < 30; index++) {
+      const result = await collect(`8.8.8.${index}`);
+      expect(result.neighborhood?.activeBadNeighbors).toBe(2);
+    }
+    // A per-query scan of the feed would parse hundreds of thousands of IPs.
+    // The bound allows target validation while proving the feed index is reused.
+    expect(parse.mock.calls.length).toBeLessThan(300);
+    expect(cidr).not.toHaveBeenCalledWith('9.9.9.0/24');
+    expect(mock).toHaveBeenCalledTimes(4);
+  });
+
+  it('coalesces simultaneous same-IP geo and configured risk lookups', async () => {
+    const mock = vi.fn(async (input: RequestInfo | URL) => {
+      return new Response(
+        JSON.stringify(
+          input.toString().includes('ipqualityscore')
+            ? { success: true, vpn: false, proxy: false, tor: false, recent_abuse: false }
+            : { success: true, connection: { asn: 123, isp: 'Example Telecom', org: 'Example Telecom' } },
+        ),
+      );
+    });
+    vi.stubGlobal('fetch', mock);
+    const results = await Promise.all(
+      Array.from({ length: 12 }, () =>
+        collect('8.8.8.8', {
+          PURITY_PUBLIC_FEEDS: 'off',
+          IPQS_KEY: 'fixture-key',
+        }),
+      ),
+    );
+    expect(mock).toHaveBeenCalledTimes(2);
+    expect(results.every((result) => result.signals.some((signal) => signal.key === 'vpn'))).toBe(true);
+  });
+
+  it('cools down each failing provider across changing target IPs and permits recovery', async () => {
+    const mock = vi.fn(async () => new Response('{}', { status: 429 }));
+    vi.stubGlobal('fetch', mock);
+    const env = {
+      PURITY_PUBLIC_FEEDS: 'off',
+      IPAPI_KEY: 'fixture-key',
+      IPQS_KEY: 'fixture-key',
+      ABUSEIPDB_KEY: 'fixture-key',
+    };
+    await collect('8.8.8.8', env);
+    await collect('8.8.8.9', env);
+    await collect('8.8.8.10', env);
+    expect(mock).toHaveBeenCalledTimes(4);
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now + 60_001);
+    await collect('8.8.8.11', env);
+    expect(mock).toHaveBeenCalledTimes(8);
+  });
+
+  it('preserves healthy risk providers while another provider is cooling down', async () => {
+    const mock = vi.fn(async (input: RequestInfo | URL) => {
+      if (input.toString().includes('ipqualityscore')) return new Response('{}', { status: 429 });
+      return new Response(JSON.stringify({ data: { abuseConfidenceScore: 0, isTor: false } }));
+    });
+    vi.stubGlobal('fetch', mock);
+    const env = {
+      GEO_FREE_PROVIDER: 'off',
+      PURITY_PUBLIC_FEEDS: 'off',
+      IPQS_KEY: 'fixture-key',
+      ABUSEIPDB_KEY: 'fixture-key',
+    };
+    for (const ip of ['8.8.8.8', '8.8.8.9', '8.8.8.10']) {
+      const result = await collect(ip, env);
+      expect(result.signals).toContainEqual(
+        expect.objectContaining({ source: 'AbuseIPDB', key: 'abuse', value: 0 }),
+      );
+    }
+    expect(mock.mock.calls.filter(([input]) => input.toString().includes('ipqualityscore'))).toHaveLength(1);
+    expect(mock.mock.calls.filter(([input]) => input.toString().includes('abuseipdb'))).toHaveLength(3);
+  });
+
+  it('limits cold-provider concurrency during a burst of different targets', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const mock = vi.fn(async () => {
+      await gate;
+      return new Response('{}', { status: 429 });
+    });
+    vi.stubGlobal('fetch', mock);
+    const pending = Promise.all(
+      Array.from({ length: 20 }, (_, index) =>
+        collect(`8.8.8.${index + 1}`, {
+          PURITY_PUBLIC_FEEDS: 'off',
+        }),
+      ),
+    );
+    await vi.waitFor(() => expect(mock).toHaveBeenCalledTimes(4));
+    release();
+    const results = await pending;
+    expect(mock).toHaveBeenCalledTimes(4);
+    expect(results.every((result) => result.signals.length === 0)).toBe(true);
+  });
+
+  it('keeps a warm keyed result available during the provider circuit cooldown', async () => {
+    const mock = fixtures({ ipapi: JSON.stringify({ ip: '8.8.8.8', is_vpn: false }) });
+    const env = { GEO_FREE_PROVIDER: 'off', PURITY_PUBLIC_FEEDS: 'off', IPAPI_KEY: 'fixture-key' };
+    await collect('8.8.8.8', env);
+    // A mismatched response for another target opens only the provider circuit.
+    await collect('8.8.8.9', env);
+    const warm = await collect('8.8.8.8', env);
+    expect(warm.signals).toContainEqual(
+      expect.objectContaining({ source: 'ipapi.is', key: 'vpn', value: false }),
+    );
+    expect(mock).toHaveBeenCalledTimes(2);
+  });
+
+  it('rechecks cached DROP freshness without violating its hourly fetch interval', async () => {
+    const now = Date.now();
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(now);
+    const mock = fixtures({
+      drop4: [
+        JSON.stringify({ cidr: '9.9.9.0/24' }),
+        JSON.stringify({ timestamp: Math.floor((now - 48 * 3600_000 + 30_000) / 1000), copyright }),
+      ].join('\n'),
+    });
+    expect((await collect()).feeds.find((feed) => feed.source.includes('Spamhaus'))?.checked).toBe(true);
+    nowSpy.mockReturnValue(now + 31_000);
+    const result = await collect('8.8.8.9');
+    expect(result.feeds.find((feed) => feed.source.includes('Spamhaus'))).toMatchObject({
+      checked: false,
+      status: 'stale',
+    });
+    expect(result.signals.some((signal) => signal.key === 'blacklist')).toBe(false);
+    expect(mock).toHaveBeenCalledTimes(3);
+  });
+
+  it('does not label retrieval time as an unpublished feed timestamp', async () => {
+    fixtures();
+    const result = await collect();
+    expect(result.feeds.find((feed) => feed.source.includes('Tor'))).toMatchObject({
+      updatedAt: null,
+      fetchedAt: expect.any(String),
+      expiresAt: expect.any(String),
+      status: 'available',
+    });
+  });
+
+  it('rejects future Feodo activity even when an entry claims to be online', async () => {
+    fixtures({
+      feodo: JSON.stringify([row('8.8.8.8', 'online', new Date(Date.now() + 3600_000).toISOString())]),
+    });
+    const result = await collect();
+    expect(result.feeds.find((feed) => feed.source.includes('Feodo'))?.checked).toBe(false);
+    expect(result.signals.some((signal) => signal.key === 'bot')).toBe(false);
+  });
+
+  it('merges local positive VPN and hosting evidence while preserving independent ASN classification', async () => {
+    const feed = {
+      source: 'Google Cloud public ranges',
+      url: 'https://www.gstatic.com/ipranges/cloud.json',
+      checked: true,
+      updatedAt: new Date().toISOString(),
+      origin: 'snapshot',
+      status: 'available',
+    };
+    enrichment.network.mockResolvedValue({
+      companyType: { type: 'hosting', source: 'Google Cloud public ranges', inferred: false },
+      signals: [
+        {
+          key: 'vpn',
+          value: true,
+          source: 'X4B VPN ranges',
+          confidence: 0.6,
+          detection: 'Estimated / Unsupported',
+        },
+        {
+          key: 'hosting',
+          value: true,
+          source: 'Google Cloud public ranges',
+          confidence: 1,
+          detection: 'Provider Detection',
+        },
+      ],
+      feeds: [feed],
+      warnings: ['Local network evidence was retained'],
+    });
+    fixtures({
+      geo: JSON.stringify({
+        success: true,
+        connection: { asn: 123, isp: 'Example Telecom', org: 'Example Telecom' },
+      }),
+    });
+    const result = await collect('8.8.8.8', { PURITY_PUBLIC_FEEDS: 'off' });
+    expect(result.asnType).toMatchObject({ type: 'isp', inferred: true });
+    expect(result.companyType).toEqual({
+      type: 'hosting',
+      source: 'Google Cloud public ranges',
+      inferred: false,
+    });
+    expect(result.signals).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: 'vpn', value: true, confidence: 0.6 }),
+        expect.objectContaining({ key: 'hosting', value: true, confidence: 1 }),
+      ]),
+    );
+    expect(result.feeds).toContainEqual(feed);
+    expect(result.warnings).toContain('Local network evidence was retained');
+    expect(enrichment.network).toHaveBeenCalledWith('8.8.8.8', { refresh: false });
+  });
+
+  it('retains actual provider ASN and company classifications alongside conflicting local network flags', async () => {
+    enrichment.network.mockResolvedValue({
+      companyType: { type: 'hosting', source: 'Google Cloud public ranges', inferred: false },
+      signals: [
+        {
+          key: 'hosting',
+          value: true,
+          source: 'Google Cloud public ranges',
+          confidence: 1,
+          detection: 'Provider Detection',
+        },
+      ],
+      feeds: [],
+      warnings: [],
+    });
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              as: { asn: 'AS1234', name: 'Example Telecom', type: 'isp' },
+              company: { name: 'Example Business', type: 'business' },
+            }),
+          ),
+      ),
+    );
+    const result = await collect('8.8.8.8', { IPINFO_TOKEN: 'fixture-token', PURITY_PUBLIC_FEEDS: 'off' });
+    expect(result.asnType).toEqual({ type: 'isp', source: 'IPinfo ASN classification', inferred: false });
+    expect(result.companyType).toEqual({
+      type: 'business',
+      source: 'IPinfo company classification',
+      inferred: false,
+    });
+    expect(result.signals).toContainEqual(
+      expect.objectContaining({ key: 'hosting', value: true, source: 'Google Cloud public ranges' }),
+    );
+  });
+
+  it('preserves public threat checks when local network enrichment fails', async () => {
+    enrichment.network.mockRejectedValue(new Error('Invalid local index'));
+    fixtures();
+    const result = await collect();
+    expect(result.signals).toContainEqual(expect.objectContaining({ key: 'tor', value: false }));
+    expect(result.signals).toContainEqual(expect.objectContaining({ key: 'blacklist', value: false }));
+    expect(result.warnings).toContain('Local network classification unavailable');
+  });
+
+  it('merges default IPQuery flags and source diagnostics without replacing organization evidence', async () => {
+    const feed = {
+      source: 'IPQuery',
+      url: 'https://ipquery.io/',
+      checked: true,
+      updatedAt: null,
+      origin: 'live',
+      status: 'available',
+    };
+    enrichment.ipquery.mockResolvedValue({
+      signals: [
+        { key: 'vpn', value: true, source: 'IPQuery', confidence: null, detection: 'Provider Detection' },
+        { key: 'proxy', value: false, source: 'IPQuery', confidence: null, detection: 'Provider Detection' },
+        { key: 'tor', value: false, source: 'IPQuery', confidence: null, detection: 'Provider Detection' },
+        {
+          key: 'datacenter',
+          value: false,
+          source: 'IPQuery',
+          confidence: null,
+          detection: 'Provider Detection',
+        },
+      ],
+      feeds: [feed],
+      warnings: [],
+    });
+    fixtures();
+    const result = await collect('8.8.8.8', { PURITY_PUBLIC_FEEDS: 'off' });
+    expect(enrichment.ipquery).toHaveBeenCalledWith('8.8.8.8');
+    expect(result.signals.filter((signal) => signal.source === 'IPQuery')).toHaveLength(4);
+    expect(result.signals).toContainEqual(
+      expect.objectContaining({ key: 'vpn', value: true, source: 'IPQuery' }),
+    );
+    expect(result.signals).toContainEqual(
+      expect.objectContaining({ key: 'proxy', value: false, source: 'IPQuery' }),
+    );
+    expect(result.feeds).toContainEqual(feed);
+    expect(result.asnType).toMatchObject({ type: 'isp', inferred: true });
+    expect(result.companyType).toMatchObject({ type: 'hosting', inferred: true });
+  });
+
+  it('retains local inferred VPN evidence and exposes an IPQuery outage independently', async () => {
+    enrichment.network.mockResolvedValue({
+      signals: [
+        {
+          key: 'vpn',
+          value: true,
+          source: 'X4B VPN ranges',
+          confidence: 0.6,
+          detection: 'Estimated / Unsupported',
+        },
+      ],
+      feeds: [],
+      warnings: [],
+    });
+    enrichment.ipquery.mockResolvedValue({
+      signals: [],
+      feeds: [
+        {
+          source: 'IPQuery',
+          url: 'https://ipquery.io/',
+          checked: false,
+          updatedAt: null,
+          status: 'unavailable',
+        },
+      ],
+      warnings: ['IPQuery unavailable or invalid; checks remain unknown.'],
+    });
+    fixtures();
+    const result = await collect();
+    expect(result.signals).toContainEqual(
+      expect.objectContaining({ key: 'vpn', value: true, source: 'X4B VPN ranges' }),
+    );
+    expect(result.signals.some((signal) => signal.source === 'IPQuery')).toBe(false);
+    expect(result.feeds).toContainEqual(expect.objectContaining({ source: 'IPQuery', checked: false }));
+    expect(result.warnings).toContain('IPQuery unavailable or invalid; checks remain unknown.');
+  });
+
+  it('retains contradictory local and default-provider VPN findings for model conflict handling', async () => {
+    enrichment.network.mockResolvedValue({
+      signals: [
+        {
+          key: 'vpn',
+          value: true,
+          source: 'X4B VPN ranges',
+          confidence: 0.6,
+          detection: 'Estimated / Unsupported',
+        },
+      ],
+      feeds: [],
+      warnings: [],
+    });
+    enrichment.ipquery.mockResolvedValue({
+      signals: [
+        { key: 'vpn', value: false, source: 'IPQuery', confidence: null, detection: 'Provider Detection' },
+      ],
+      feeds: [],
+      warnings: [],
+    });
+    fixtures();
+    const input = await collect('8.8.8.8', { GEO_FREE_PROVIDER: 'off', PURITY_PUBLIC_FEEDS: 'off' });
+    expect(input.signals.filter((signal) => signal.key === 'vpn')).toHaveLength(2);
+    const { calculatePurity } = await import('../src/lib/purity');
+    const result = calculatePurity('8.8.8.8', input);
+    expect(result.conflicts).toContain('vpn');
+    expect(result.dimensions.find((factor) => factor.key === 'anonymity')?.evidence).toBe(
+      'Anonymity detected',
+    );
+    expect(result.level).not.toBe('High purity');
   });
 });

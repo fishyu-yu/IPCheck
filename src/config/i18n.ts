@@ -42,6 +42,18 @@ export function translate(text: string, language: Locale = locale): string {
     ],
     [/^Local name inference \((.+)\)$/, (source) => `本地名称推断（${source}）`],
     [
+      /^(.+) refresh unavailable; using local snapshot if valid\.$/,
+      (source) => `${source} 刷新暂不可用，使用仍有效的本地快照。`,
+    ],
+    [
+      /^(.+) local snapshot expired or invalid; classification is unknown\.$/,
+      (source) => `${source} 本地快照已过期或无效，分类保持未知。`,
+    ],
+    [
+      /^(.+) cached snapshot expired; absence remains unknown$/,
+      (source) => `${source} 缓存快照已过期，未命中情况保持未知。`,
+    ],
+    [
       /^(\d+) resolvers observed\. Empty results do not prove absence of a leak\.$/,
       (n) => `观测到 ${n} 个解析器。结果为空不代表没有泄露。`,
     ],

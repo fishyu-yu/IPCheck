@@ -173,7 +173,7 @@ describe('local purity model', () => {
   it('exposes deterministic model and assessment time for auditing', () => {
     const result = calculatePurity('2606:4700::1111', empty, new Date('2026-10-04T00:00:00Z'));
     expect(result.assessedAt).toBe('2026-10-04T00:00:00.000Z');
-    expect(result.model).toBe('local-purity-v1');
+    expect(result.model).toBe('local-purity-v2');
     expect(result.neighborhood.scope).toBe('none');
   });
   it.each(['vpn', 'abuse'] as const)(
@@ -198,5 +198,62 @@ describe('local purity model', () => {
     });
     expect(result.dimensions[2].evidence).toBe('Anonymity checks incomplete');
     expect(result.coverage).toBe(20);
+  });
+  it('discounts estimated VPN membership instead of treating it as a confirmed active tunnel', () => {
+    const detected = signal('vpn', true, 'VPN prefix list');
+    const estimated = calculatePurity('8.8.8.8', {
+      ...empty,
+      signals: [{ ...detected, confidence: 0.6, detection: 'Estimated / Unsupported' }],
+    });
+    const confirmed = calculatePurity('8.8.8.8', { ...empty, signals: [detected] });
+    expect(estimated.score).toBeGreaterThan(confirmed.score);
+    expect(estimated.dimensions[2].inferred).toBe(true);
+    expect(estimated.coverage).toBeLessThan(confirmed.coverage);
+    expect(estimated.level).not.toBe('High purity');
+  });
+  it('keeps weak neighbor evidence weak when independent healthy density is also known', () => {
+    const neighborhood = {
+      cidr: '8.8.8.0/24',
+      activeBadNeighbors: 10,
+      abuseDensity: null,
+      scope: 'ipv4-/24' as const,
+      source: 'CINS',
+      activitySource: 'CINS',
+    };
+    const weak = calculatePurity('8.8.8.8', { ...empty, neighborhood });
+    const combined = calculatePurity('8.8.8.8', {
+      ...empty,
+      neighborhood: { ...neighborhood, abuseDensity: 0, source: 'Company density' },
+    });
+    expect(combined.dimensions[4].score).toBe(weak.dimensions[4].score);
+    expect(combined.dimensions[4].sources).toEqual(['Company density', 'CINS']);
+  });
+  it('does not apply a hard hosting cap to a name-only estimate', () => {
+    const result = calculatePurity('8.8.8.8', {
+      ...comprehensive,
+      companyType: { type: 'hosting', source: 'Name hint', inferred: true },
+    });
+    expect(result.score).toBeGreaterThan(65);
+    expect(result.dimensions[1].inferred).toBe(true);
+  });
+  it('shows missing-evidence bounds and actionable recommendations, respecting adverse caps', () => {
+    expect(calculatePurity('8.8.8.8', empty).scoreRange).toEqual({ min: 0, max: 100 });
+    for (const input of [
+      empty,
+      comprehensive,
+      { ...empty, signals: [signal('blacklist', true, 'Spamhaus')] },
+    ]) {
+      const result = calculatePurity('8.8.8.8', input);
+      expect(result.scoreRange.min).toBeLessThanOrEqual(result.score);
+      expect(result.scoreRange.max).toBeGreaterThanOrEqual(result.score);
+      expect(result.recommendations.length).toBeGreaterThan(0);
+      expect(result.dimensions.every((factor) => factor.reliability >= 0 && factor.reliability <= 1)).toBe(
+        true,
+      );
+    }
+    expect(
+      calculatePurity('8.8.8.8', { ...empty, signals: [signal('blacklist', true, 'Spamhaus')] }).scoreRange
+        .max,
+    ).toBeLessThanOrEqual(10);
   });
 });

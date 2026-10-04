@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "format": "prettier --write .",
+    "purity:update-data": "node scripts/update-purity-data.mjs",
     "test": "vitest run",
     "build": "tsc --noEmit && vite build && node scripts/build.mjs",
     "build:ci": "pnpm lint && pnpm test && pnpm build",

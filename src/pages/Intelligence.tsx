@@ -23,7 +23,9 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
   const current = useCurrentIp();
   const [params] = useSearchParams();
   const requestedIp = kind === 'risk' ? params.get('ip') : null;
-  const currentPurity = usePurity(kind === 'risk' ? requestedIp || current.data?.ip : null);
+  const [submittedPurityIp, setSubmittedPurityIp] = useState<string | null>(null);
+  const purityTarget = submittedPurityIp ?? requestedIp ?? current.data?.ip;
+  const currentPurity = usePurity(kind === 'risk' ? purityTarget : null);
   const [input, setInput] = useState(requestedIp || '');
   const lookup = useMutation({
     mutationFn: (target: string) =>
@@ -34,32 +36,35 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
   const resetLookup = lookup.reset;
   useEffect(() => {
     resetLookup();
+    setSubmittedPurityIp(null);
     setInput(requestedIp || '');
   }, [kind, requestedIp, resetLookup]);
   const submit = (e: FormEvent) => {
     e.preventDefault();
-    lookup.mutate(input.trim());
+    if (kind === 'risk') {
+      const target = input.trim();
+      if (target === purityTarget) void currentPurity.refetch();
+      setSubmittedPurityIp(target);
+    } else lookup.mutate(input.trim());
   };
-  const hasLookup = lookup.variables !== undefined;
-  const data = hasLookup
-    ? lookup.isSuccess
-      ? lookup.data
-      : undefined
-    : kind === 'ip'
-      ? current.data
-      : kind === 'risk'
-        ? currentPurity.data
-        : undefined;
+  const hasLookup = kind === 'risk' ? submittedPurityIp !== null : lookup.variables !== undefined;
+  const data =
+    kind === 'risk'
+      ? currentPurity.data
+      : hasLookup
+        ? lookup.isSuccess
+          ? lookup.data
+          : undefined
+        : kind === 'ip'
+          ? current.data
+          : undefined;
   const ip = kind === 'ip' ? (data as IPInfo | undefined) : undefined,
     asn = kind === 'asn' ? (data as ASNInfo | undefined) : undefined;
   const ipPurity = usePurity(ip?.ip);
-  const purityLoading =
-    lookup.isPending || (!hasLookup && (currentPurity.isFetching || (!requestedIp && current.isLoading)));
-  const purityError =
-    lookup.error || (!hasLookup ? currentPurity.error || (!requestedIp ? current.error : null) : null);
+  const purityLoading = currentPurity.isFetching || (!purityTarget && current.isLoading);
+  const purityError = currentPurity.error || (!purityTarget ? current.error : null);
   const retryPurity = () => {
-    if (hasLookup) lookup.mutate(lookup.variables!);
-    else if (requestedIp || current.data?.ip) void currentPurity.refetch();
+    if (purityTarget) void currentPurity.refetch();
     else void current.refetch();
   };
   return (
@@ -92,7 +97,9 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
               autoComplete="off"
             />
           </div>
-          <RunButton busy={lookup.isPending}>{localize('Look up')}</RunButton>
+          <RunButton busy={kind === 'risk' ? purityLoading : lookup.isPending}>
+            {localize('Look up')}
+          </RunButton>
         </div>
         <p className="helper">
           {localize(
@@ -106,7 +113,7 @@ export default function Intelligence({ kind }: { kind: 'ip' | 'asn' | 'risk' }) 
       {kind !== 'risk' && lookup.isPending && <Skeleton lines={5} />}
       {kind === 'risk' && (
         <PurityPanel
-          ip={hasLookup ? lookup.variables : requestedIp || current.data?.ip}
+          ip={purityTarget}
           data={data as PurityResult | undefined}
           loading={purityLoading}
           error={purityError}

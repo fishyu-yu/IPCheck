@@ -64,3 +64,14 @@ Cloudflare Worker 已发布到 [线上站点](https://netprobe.yangzhan-ms.worke
 - Spamhaus IPv4 / IPv6 与 Tor 查询成功。Feodo 推荐列表返回 2026-06-30 的修改时间，程序拒绝其陈旧快照；IPv4 使用更新的 CINS 当前名单，准确计数 `/24` 中的其他地址。CINS / Tor 的 IPv6 不覆盖状态保持未知。
 
 真实网络结果保存在本地 `artifacts/purity-live-smoke.jsonl`，桌面及手机截图为 `artifacts/purity-desktop.png` / `artifacts/purity-mobile.png`。这些是当时的观测，不能保证未来数据源可用；未使用真实付费密钥验收，也未执行上线发布。
+
+## 2026-10-04 本地纯净度 v2
+
+- 全部 228 项单元/API 测试通过，包括默认 IPQuery、可选 Proxycheck、完整/缺失/错误字段、IPv6 规范化、并发合并、供应商独立冷却、本地前缀快照完整性与时效、正向名单语义、邻居索引、证据强度、风险封顶和 API 生产协议。
+- 全部 27 项浏览器测试通过，覆盖中文、查询切换、无 IP / pending / failure、逐项证据与冲突、有限结果每分钟刷新、完整结果每 15 分钟刷新、旧结果兼容以及 320–1440 px 布局。手工提交的纯净度查询也使用相同的 Query 缓存。
+- TypeScript、全仓 ESLint、beta Vite 构建、Cloudflare / EdgeOne / OpenAPI 产物生成和 beta Wrangler `--dry-run` 全通过。Worker 包 925.80 KiB，gzip 170.86 KiB。
+- 真实默认无密钥验收使用已构建的 EdgeOne API：`8.8.8.8` 返回 65 分 / 覆盖 40%，IPv6 `2606:4700:4700::1111` 返回 65 分 / 覆盖 36%，Google Cloud `35.190.0.1` 返回 62 分 / 覆盖 60%，VPN 前缀 `2.56.16.1` 返回 55 分 / 覆盖 50%。全部 HTTP 200、完整五因素、逐来源信号、区间和建议；冷查询约 3.9 秒，后续约 0.2–0.3 秒。结果是当时的观测，不是固定期望分数。
+- IPQuery 双栈检测有效，供应商 `risk_score` 不参与计算；Feodo 陈旧快照被拒绝，IPv4 使用 CINS，IPv6 不覆盖保持明确未知。Google Cloud 官方前缀识别 Company hosting；VPN 名单仅提供推断线索，独立供应商结果均保留。
+- VPN / Cloud 全量快照保留许可与哈希、预编译查询索引。独立重建原始 CIDR 区间，与预编译数据逐一一致；冷与实时刷新路径避免逐行解析上万条 IPv4 CIDR。
+
+真实结果记录位于本地 `artifacts/purity-v2-live-smoke.jsonl`。可选付费密钥只通过模拟供应商契约验证，未创建账户或消耗付费额度。

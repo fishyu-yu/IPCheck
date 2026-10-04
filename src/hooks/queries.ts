@@ -17,6 +17,16 @@ export const usePurity = (ip?: string | null) =>
     queryKey: ['purity', ip],
     queryFn: ({ signal }) => getPurity(ip!, signal),
     enabled: !!ip,
-    staleTime: 900000,
+    staleTime: (query) => {
+      const data = query.state.data;
+      return !data || data.status !== 'assessed' || data.feeds.some((feed) => !feed.checked) ? 60000 : 900000;
+    },
+    refetchInterval: (query) => {
+      if (query.state.status === 'error') return false;
+      const data = query.state.data;
+      return !data || data.status !== 'assessed' || data.feeds.some((feed) => !feed.checked) ? 60000 : 900000;
+    },
+    // Retain only this query key's assessment while refreshing; another IP starts empty.
+    placeholderData: undefined,
     retry: 0,
   });

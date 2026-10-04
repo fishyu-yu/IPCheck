@@ -15,7 +15,9 @@ export interface Env {
   IPINFO_TOKEN?: string;
   IPQS_KEY?: string;
   IPAPI_KEY?: string;
+  PROXYCHECK_KEY?: string;
   PURITY_PUBLIC_FEEDS?: string;
+  PURITY_IPQUERY?: string;
   ABUSEIPDB_KEY?: string;
   GEO_FREE_PROVIDER?: string;
   DOH_URLS?: string;
