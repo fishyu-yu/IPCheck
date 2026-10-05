@@ -1,6 +1,6 @@
 # 验证记录
 
-最近验证日期：2026-10-01（Asia/Shanghai）。环境：Windows、Node.js 24.19.0、Chrome。
+最近验证日期：2026-10-05（Asia/Shanghai）。环境：Windows、Node.js 24.19.0、Chrome。
 
 ## 本次中文化与界面更新
 
@@ -75,3 +75,14 @@ Cloudflare Worker 已发布到 [线上站点](https://netprobe.yangzhan-ms.worke
 - VPN / Cloud 全量快照保留许可与哈希、预编译查询索引。独立重建原始 CIDR 区间，与预编译数据逐一一致；冷与实时刷新路径避免逐行解析上万条 IPv4 CIDR。
 
 真实结果记录位于本地 `artifacts/purity-v2-live-smoke.jsonl`。可选付费密钥只通过模拟供应商契约验证，未创建账户或消耗付费额度。
+
+## 2026-10-05 发布前严格验收
+
+- 最终全套 254 项单元/API 测试、32 项浏览器测试全部通过；全仓 ESLint、TypeScript 和 `git diff --check` 通过。
+- 独立审核发现并修复新增弱正向 VPN / proxy 或 abuse 信号反而提高分数的反例。新增 1,944 个布尔组合和 500 个固定种子的混合输入验证风险单调性、来源顺序无关性及有限分数范围；冲突阴性不再获得清洁加分。
+- 整体评估缓存和浏览器刷新受最早有效来源的 `expiresAt` 限制；评分前检查期限，慢请求期间过期的分类、信号与邻居证据恢复未知，混合邻居的其他独立来源继续有效。API 回归覆盖毫秒边界、无效期限、过期重算和输入不变。
+- 浏览器验证手工 IPv6 查询自动刷新、离开 pending 查询后迟到响应隔离、后台失败保留同 IP 结果并恢复、短来源期限刷新。过期证据刷新失败后固定一分钟重试，验证 30 秒内没有额外请求、一分钟后恢复，避免每秒重试触发限流。
+- 离线快照测试独立检查 10,939 条 VPN 和 1,107 条 Google Cloud 原始 CIDR，全部 24,092 个首末端点正确匹配；损坏哈希、索引、来源、未来时间、准确过期边界与刷新失败回退均通过。
+- beta 与 master 前端构建、Cloudflare / EdgeOne / OpenAPI 产物、各自 Wrangler `--dry-run` 均通过。Worker 为 928.36 KiB，gzip 171.40 KiB；各自域名、限流绑定和 `/risk` 的 IP Purity 标题及 canonical 链接正确。
+
+本节记录推送前本地验收。自动部署与在线 API 需按对应 Git 提交核对 GitHub Cloudflare 构建检查；实际网络数据会随情报来源更新，不能使用固定分数代替在线协议验收。

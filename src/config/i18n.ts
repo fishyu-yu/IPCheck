@@ -42,6 +42,10 @@ export function translate(text: string, language: Locale = locale): string {
     ],
     [/^Local name inference \((.+)\)$/, (source) => `本地名称推断（${source}）`],
     [
+      /^(.+) expired before assessment; its findings remain unknown\.$/,
+      (source) => `${source} 在评估前已过期，相关发现保持未知。`,
+    ],
+    [
       /^(.+) refresh unavailable; using local snapshot if valid\.$/,
       (source) => `${source} 刷新暂不可用，使用仍有效的本地快照。`,
     ],

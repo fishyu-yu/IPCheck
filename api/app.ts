@@ -18,6 +18,7 @@ import { riskLookup } from './risk/providers';
 import { collectPurity } from './purity/providers';
 import { coalesced } from './purity/runtime';
 import { calculatePurity } from '../src/lib/purity';
+import { purityRefreshInterval } from '../src/lib/purity-freshness';
 import { purityModel } from '../src/config/purity.config';
 import { RipeASNProvider } from './lookup/providers';
 import { dnsLookup, recordSchema, reverseName } from './dns/service';
@@ -184,16 +185,11 @@ export function createApp(adapter: PlatformAdapter) {
       .map((byte) => byte.toString(16).padStart(2, '0'))
       .join('');
     // Credential changes cannot reuse another data profile; no key is stored in the cache identifier.
-    const key = `purity:${purityModel}:${profileHash}:${ip}`;
+    const key = `purity:${purityModel}:r2:${profileHash}:${ip}`;
     const data = await coalesced(key, () =>
       cached(
         key,
-        (result) =>
-          result.status !== 'assessed' ||
-          result.feeds.some((feed) => !feed.checked) ||
-          result.warnings.some((warning) => /unavailable|invalid|no valid|no .*returned/i.test(warning))
-            ? 60
-            : 900,
+        (result) => Math.max(1, Math.floor(purityRefreshInterval(result) / 1000)),
         async () => calculatePurity(ip, await collectPurity(ip, c.env)),
       ),
     );

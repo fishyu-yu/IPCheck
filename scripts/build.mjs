@@ -36,7 +36,7 @@ const pages = {
   '/': 'Overview',
   '/ip': 'IP Lookup',
   '/asn': 'ASN Lookup',
-  '/risk': 'Risk Analysis',
+  '/risk': 'IP Purity',
   '/ping': 'Ping',
   '/tcping': 'TCP Ping',
   '/http-ping': 'HTTP Ping',

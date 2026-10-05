@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { getCurrentIp, getHealth, getPurity, getRisk } from '../services/api';
+import { purityRefreshInterval } from '../lib/purity-freshness';
 export const useCurrentIp = () =>
   useQuery({ queryKey: ['current-ip'], queryFn: getCurrentIp, staleTime: 300000, retry: 0 });
 export const useHealth = () =>
@@ -17,14 +18,10 @@ export const usePurity = (ip?: string | null) =>
     queryKey: ['purity', ip],
     queryFn: ({ signal }) => getPurity(ip!, signal),
     enabled: !!ip,
-    staleTime: (query) => {
-      const data = query.state.data;
-      return !data || data.status !== 'assessed' || data.feeds.some((feed) => !feed.checked) ? 60000 : 900000;
-    },
+    staleTime: (query) => purityRefreshInterval(query.state.data),
     refetchInterval: (query) => {
-      if (query.state.status === 'error') return false;
-      const data = query.state.data;
-      return !data || data.status !== 'assessed' || data.feeds.some((feed) => !feed.checked) ? 60000 : 900000;
+      if (query.state.status === 'error') return query.state.data ? 60000 : false;
+      return purityRefreshInterval(query.state.data);
     },
     // Retain only this query key's assessment while refreshing; another IP starts empty.
     placeholderData: undefined,

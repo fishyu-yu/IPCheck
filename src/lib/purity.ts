@@ -24,6 +24,51 @@ const unknownType: PurityTypeEvidence = { type: 'unknown', inferred: false, sour
 
 /** Deterministic heuristic: unknown factors retain a neutral prior, never a clean finding. */
 export function calculatePurity(ip: string, input: PurityInput, now = new Date()): PurityResult {
+  const expiredSources = new Set(
+    input.feeds
+      .filter(
+        (feed) =>
+          feed.checked &&
+          feed.expiresAt &&
+          (!Number.isFinite(Date.parse(feed.expiresAt)) || Date.parse(feed.expiresAt) <= now.getTime()),
+      )
+      .map((feed) => feed.source),
+  );
+  if (expiredSources.size) {
+    const original = input;
+    const type = (finding: PurityTypeEvidence | undefined) =>
+      finding && expiredSources.has(finding.source) ? { ...finding, type: 'unknown' as const } : finding;
+    input = {
+      ...original,
+      feeds: original.feeds.map((feed) =>
+        expiredSources.has(feed.source) ? { ...feed, checked: false, status: 'stale' as const } : feed,
+      ),
+      signals: original.signals.map((finding) =>
+        expiredSources.has(finding.source) ? { ...finding, value: null } : finding,
+      ),
+      asnType: type(original.asnType),
+      companyType: type(original.companyType),
+      neighborhood: original.neighborhood
+        ? {
+            ...original.neighborhood,
+            abuseDensity: expiredSources.has(original.neighborhood.source)
+              ? null
+              : original.neighborhood.abuseDensity,
+            activeBadNeighbors: expiredSources.has(
+              original.neighborhood.activitySource || original.neighborhood.source,
+            )
+              ? null
+              : original.neighborhood.activeBadNeighbors,
+          }
+        : undefined,
+      warnings: [
+        ...original.warnings,
+        ...[...expiredSources].map(
+          (source) => source + ' expired before assessment; its findings remain unknown.',
+        ),
+      ],
+    };
+  }
   const signals: RiskSignal[] = input.signals.map((signal) => ({
     ...signal,
     value:
@@ -45,6 +90,12 @@ export function calculatePurity(ip: string, input: PurityInput, now = new Date()
     s.confidence === null ? 1 : Number.isFinite(s.confidence) ? clamp(s.confidence * 100) / 100 : 0;
   const checkedCoverage = (keys: readonly string[]) =>
     keys.reduce((sum, key) => sum + Math.max(0, ...evidence([key]).map(strength)), 0) / keys.length;
+  const negativeCoverage = (keys: readonly string[]) =>
+    keys.reduce((sum, key) => {
+      const findings = evidence([key]);
+      if (findings.some((s) => Number(s.value) > 0 && strength(s) > 0)) return sum;
+      return sum + Math.max(0, ...findings.filter((s) => Number(s.value) === 0).map(strength));
+    }, 0) / keys.length;
   const conflicts = [...new Set(signals.map((s) => s.key))].filter(
     (key) =>
       new Set(
@@ -104,7 +155,9 @@ export function calculatePurity(ip: string, input: PurityInput, now = new Date()
     ),
   );
   const anonymityCoverage = checkedCoverage(['vpn', 'proxy', 'tor']);
-  const anonymityQuality = 50 + 45 * anonymityCoverage;
+  // Adverse checks expand coverage, but cannot also earn a clean-evidence bonus.
+  // Keep conflicting negatives visible without rewarding them in the score.
+  const anonymityQuality = 50 + 45 * negativeCoverage(['vpn', 'proxy', 'tor']);
   add(
     'anonymity',
     anonymityQuality - anonymitySeverity,
@@ -123,9 +176,16 @@ export function calculatePurity(ip: string, input: PurityInput, now = new Date()
   // A feed miss is a limited negative: these feeds do not cover every abuse category.
   const threatFeeds = input.feeds.filter((feed) => feed.checked && /Spamhaus|Feodo/i.test(feed.source));
   const abuseCoverage = Math.max(checkedCoverage(abuseKeys), Math.min(0.35, threatFeeds.length * 0.175));
+  const negativeThreatFeeds = threatFeeds.filter(
+    (feed) => !abuse.some((s) => s.source === feed.source && Number(s.value) > 0 && strength(s) > 0),
+  );
+  const cleanAbuseCoverage = Math.max(
+    negativeCoverage(abuseKeys),
+    Math.min(0.35, negativeThreatFeeds.length * 0.175),
+  );
   add(
     'abuse',
-    (50 + 45 * abuseCoverage) * (1 - severity),
+    (50 + 45 * cleanAbuseCoverage) * (1 - severity),
     Math.max(abuseCoverage, severity),
     severity > 0
       ? 'Recent abuse or threat detected'
