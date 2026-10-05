@@ -1,0 +1,59 @@
+name: 问题反馈
+description: 报告 IP 查询、纯净度、网络工具或界面的可复现问题。
+title: '[Bug] '
+body:
+  - type: input
+    id: version
+    attributes:
+      label: 站点或代码版本
+      description: 填写访问的站点 URL；本地开发请填写分支与提交 SHA。
+      placeholder: 'https://ipbeta.f1shyu.com 或 beta @ 提交 SHA'
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: 涉及功能
+      options:
+        - 公网 IP / IP 查询 / ASN
+        - IP 纯净度 / 风险来源
+        - DNS / 延迟 / 连通性
+        - 浏览器环境 / 指纹 / WebRTC
+        - 地球定位 / 导航 / 主题 / 本土化
+        - API / 构建 / 部署
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      description: 写明页面、输入、操作顺序和出现频率；网络问题请说明 IPv4 或 IPv6。
+      placeholder: |
+        1. 打开……
+        2. 输入……并点击……
+        3. 出现……
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 预期与实际结果
+      description: 纯净度问题请附具体因素、来源状态或缺失说明，不必预设固定分数。
+      placeholder: |
+        预期：……
+        实际：……
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: 运行环境
+      description: 浏览器与版本、系统、语言、主题；自部署请补充 Cloudflare / EdgeOne / 本地及相关配置项是否启用。
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 截图、错误或 API 响应
+      description: 可附控制台错误、请求状态码或相关响应字段；请遮盖密钥和真实个人 IP。
